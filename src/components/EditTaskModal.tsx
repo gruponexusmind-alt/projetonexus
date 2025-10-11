@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +10,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TaskLabelsSelector } from '@/components/TaskLabelsSelector';
 import { TaskDependenciesManager } from '@/components/TaskDependenciesManager';
-import { CalendarIcon, Edit, Save, Link2 } from 'lucide-react';
+import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
+import { CalendarIcon, Edit, Save, Link2, Info, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -187,7 +189,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="h-5 w-5" />
@@ -195,7 +197,20 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <Tabs defaultValue="info" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="info" className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Informações
+            </TabsTrigger>
+            <TabsTrigger value="checklist" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              Checklist
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info">
+            <form onSubmit={handleSubmit} className="space-y-6">
           {/* Título */}
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
@@ -359,7 +374,17 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
               {loading ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
-        </form>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="checklist" className="space-y-4">
+            <TaskChecklistEditor
+              taskId={task.id}
+              companyId={task.company_id}
+              onUpdate={onTaskUpdated}
+            />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

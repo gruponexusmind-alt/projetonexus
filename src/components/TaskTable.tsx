@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Calendar, Flag, User, Eye, MoreVertical, Trash } from 'lucide-react';
+import { ChecklistSummary } from '@/components/ChecklistSummary';
 import {
   Table,
   TableBody,
@@ -136,6 +137,7 @@ export function TaskTable({ tasks, loading, onRefresh }: TaskTableProps) {
               <TableHead>Responsável</TableHead>
               <TableHead>Prazo</TableHead>
               <TableHead>Progresso</TableHead>
+              <TableHead>Checklist</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -195,6 +197,9 @@ export function TaskTable({ tasks, loading, onRefresh }: TaskTableProps) {
                     </div>
                     <Progress value={task.progress} className="h-2" />
                   </div>
+                </TableCell>
+                <TableCell>
+                  <ChecklistSummary taskId={task.id} variant="badge" />
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

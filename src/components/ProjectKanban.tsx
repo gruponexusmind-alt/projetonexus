@@ -8,6 +8,7 @@ import { Plus, User, Calendar, MoreVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CreateTaskModal } from './CreateTaskModal';
+import { ChecklistSummary } from './ChecklistSummary';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,9 +59,14 @@ export function ProjectKanban({ projectId, companyId }: ProjectKanbanProps) {
 
   useEffect(() => {
     fetchTasks();
-    fetchChecklists();
     fetchStages();
   }, [projectId]);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      fetchChecklists();
+    }
+  }, [tasks.length]);
 
   const fetchTasks = async () => {
     try {
@@ -113,23 +119,23 @@ export function ProjectKanban({ projectId, companyId }: ProjectKanbanProps) {
   const fetchChecklists = async () => {
     try {
       const { data, error } = await supabase
-        .from('gp_checklist_items')
-        .select('id, title, completed, project_id')
-        .eq('project_id', projectId)
-        .order('order_index');
+        .from('gp_task_checklist')
+        .select('id, title, is_done, task_id, position')
+        .in('task_id', tasks.map(t => t.id))
+        .order('position');
 
       if (error) throw error;
 
-      // Group checklist items by task (using project_id as task reference for now)
+      // Group checklist items by task_id
       const checklistsByTask: { [taskId: string]: ChecklistItem[] } = {};
       data?.forEach(item => {
-        if (!checklistsByTask[item.project_id]) {
-          checklistsByTask[item.project_id] = [];
+        if (!checklistsByTask[item.task_id]) {
+          checklistsByTask[item.task_id] = [];
         }
-        checklistsByTask[item.project_id].push({
+        checklistsByTask[item.task_id].push({
           id: item.id,
           title: item.title,
-          completed: item.completed
+          completed: item.is_done
         });
       });
 
@@ -169,8 +175,8 @@ export function ProjectKanban({ projectId, companyId }: ProjectKanbanProps) {
   const toggleChecklistItem = async (itemId: string, completed: boolean) => {
     try {
       const { error } = await supabase
-        .from('gp_checklist_items')
-        .update({ completed: !completed })
+        .from('gp_task_checklist')
+        .update({ is_done: !completed })
         .eq('id', itemId);
 
       if (error) throw error;
@@ -242,15 +248,21 @@ export function ProjectKanban({ projectId, companyId }: ProjectKanbanProps) {
 
               <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
                 {columnTasks.map(task => {
-                  const taskChecklist = checklists[projectId] || [];
+                  const taskChecklist = checklists[task.id] || [];
                   const completedItems = taskChecklist.filter(item => item.completed).length;
                   const progress = taskChecklist.length > 0 ? (completedItems / taskChecklist.length) * 100 : 0;
 
                   return (
                     <Card key={task.id} className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-sm">{task.title}</CardTitle>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-sm truncate">{task.title}</CardTitle>
+                            {/* Checklist Summary */}
+                            <div className="mt-2">
+                              <ChecklistSummary taskId={task.id} variant="inline" />
+                            </div>
+                          </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

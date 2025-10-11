@@ -43,16 +43,19 @@ export const useGoogleCalendar = () => {
 
   // Initialize Google APIs (GIS + gapi)
   useEffect(() => {
+    let interval: number | undefined;
+    let mounted = true;
+
     const initGoogleAPIs = async () => {
       // Wait for scripts to load
       const checkReady = () =>
         Boolean(window.google?.accounts?.oauth2) && Boolean(window.gapi);
 
       if (!checkReady()) {
-        const interval = setInterval(() => {
+        interval = window.setInterval(() => {
           if (checkReady()) {
-            clearInterval(interval);
-            init();
+            if (interval) clearInterval(interval);
+            if (mounted) init();
           }
         }, 100);
         return;
@@ -62,7 +65,7 @@ export const useGoogleCalendar = () => {
     };
 
     const init = async () => {
-      if (!CLIENT_ID) return;
+      if (!CLIENT_ID || !mounted) return;
 
       // Initialize token client for OAuth popup
       if (window.google?.accounts?.oauth2) {
@@ -70,7 +73,7 @@ export const useGoogleCalendar = () => {
           client_id: CLIENT_ID,
           scope: CALENDAR_SCOPE,
           callback: (resp: any) => {
-            if (resp && resp.access_token) {
+            if (resp && resp.access_token && mounted) {
               setAccessToken(resp.access_token);
               saveToken(resp.access_token);
             }
@@ -78,32 +81,44 @@ export const useGoogleCalendar = () => {
           prompt: 'consent',
           error_callback: (error: any) => {
             console.error('OAuth error:', error);
-            toast({
-              title: 'Erro na autenticação',
-              description: 'Não foi possível conectar com o Google.',
-              variant: 'destructive',
-            });
-            setIsConnecting(false);
+            if (mounted) {
+              toast({
+                title: 'Erro na autenticação',
+                description: 'Não foi possível conectar com o Google.',
+                variant: 'destructive',
+              });
+              setIsConnecting(false);
+            }
           },
         });
       }
 
       // Initialize gapi client for Calendar API
-      if (window.gapi) {
-        await new Promise<void>((resolve) => {
-          window.gapi!.load('client', resolve);
-        });
-        await window.gapi.client.init({
-          discoveryDocs: [
-            'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
-          ],
-        });
-        setGapiReady(true);
+      if (window.gapi && mounted) {
+        try {
+          await new Promise<void>((resolve) => {
+            window.gapi!.load('client', resolve);
+          });
+          await window.gapi.client.init({
+            discoveryDocs: [
+              'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
+            ],
+          });
+          if (mounted) setGapiReady(true);
+        } catch (error) {
+          console.error('Error initializing gapi:', error);
+        }
       }
     };
 
     initGoogleAPIs();
-  }, []);
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [toast]);
 
   // Fetch stored token from Supabase
   const { data: storedToken, isLoading: isLoadingToken } = useQuery({

@@ -1,73 +1,277 @@
-# Welcome to your Lovable project
+# 🚀 Nexus - Sistema de Gestão de Projetos
 
-## Project info
+Sistema completo de gestão de projetos para agências e empresas de desenvolvimento, com foco em metodologias ágeis e gestão de equipes.
 
-**URL**: https://lovable.dev/projects/67ec9695-ef16-4493-8a28-888686e5d7d5
+![Status](https://img.shields.io/badge/status-active-success.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## How can I edit this code?
+## 📋 Sobre o Projeto
 
-There are several ways of editing your application.
+O **Nexus** é uma plataforma moderna de gestão de projetos desenvolvida com as melhores tecnologias do mercado. O sistema oferece controle completo do ciclo de vida de projetos, desde o onboarding até a entrega e monitoramento.
 
-**Use Lovable**
+### ✨ Principais Funcionalidades
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/67ec9695-ef16-4493-8a28-888686e5d7d5) and start prompting.
+- 📊 **Dashboard Interativo** com métricas em tempo real
+- 👥 **Gestão de Clientes** - CRM integrado
+- 📁 **Gestão de Projetos** - Pipeline Kanban com 6 etapas
+- ✅ **Sistema de Tarefas** - Com prioridades e atribuições
+- 📅 **Agenda de Reuniões** - Calendário integrado
+- 📂 **Gestão de Documentos** - Upload e versionamento
+- 🎯 **Sprints e Metodologia Ágil**
+- ⚠️ **Gestão de Riscos** - Identificação e mitigação
+- 💬 **Comentários em Tempo Real**
+- 🔐 **Sistema de Permissões** - 5 níveis de acesso
+- 🌙 **Dark/Light Mode**
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Stack Tecnológico
 
-**Use your preferred IDE**
+### Frontend
+- **React 18** - Library UI
+- **TypeScript** - Type safety
+- **Vite** - Build tool ultrarrápido
+- **Tailwind CSS** - Utility-first CSS
+- **shadcn-ui** - Componentes acessíveis (55 componentes)
+- **React Router v6** - Roteamento SPA
+- **TanStack React Query** - Cache e sincronização de dados
+- **React Hook Form + Zod** - Formulários e validação
+- **Recharts** - Visualização de dados
+- **Lucide React** - Ícones
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Backend
+- **Supabase** - Backend as a Service
+  - PostgreSQL 15+
+  - Auth (JWT)
+  - Storage
+  - Realtime
+  - Row Level Security (RLS)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Infraestrutura
+- **Git** - Controle de versão
+- **npm/pnpm** - Gerenciamento de pacotes
 
-Follow these steps:
+## 📦 Instalação
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### Pré-requisitos
+
+- Node.js 18+
+- npm ou pnpm
+- Conta no Supabase
+
+### Passo a passo
+
+1. **Clone o repositório**
+```bash
 git clone <YOUR_GIT_URL>
+cd projetonexus
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Instale as dependências**
+```bash
+npm install
+# ou
+pnpm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Configure as variáveis de ambiente**
+```bash
+cp .env.example .env
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Edite o arquivo `.env` e adicione suas credenciais do Supabase:
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+> 💡 **Como obter as credenciais:**
+> 1. Acesse [supabase.com](https://supabase.com)
+> 2. Vá em: Project > Settings > API
+> 3. Copie a **URL** e **anon public key**
+
+4. **Rode as migrations do banco de dados**
+```bash
+# Se estiver usando Supabase CLI
+npx supabase db push
+
+# OU importe manualmente pelo dashboard do Supabase
+# As migrations estão em: supabase/migrations/
+```
+
+5. **Inicie o servidor de desenvolvimento**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Acesse: **http://localhost:8080**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🗄️ Estrutura do Banco de Dados
 
-**Use GitHub Codespaces**
+O projeto usa **35 tabelas** com Row Level Security (RLS) habilitado:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Principais Tabelas
 
-## What technologies are used for this project?
+- `profiles` - Usuários do sistema
+- `companies` - Empresas (multi-tenant)
+- `gp_clients` - Clientes
+- `gp_projects` - Projetos
+- `gp_tasks` - Tarefas
+- `gp_meetings` - Reuniões
+- `gp_documents` - Documentos
+- `gp_comments` - Comentários
+- `gp_checklist_items` - Checklists
+- `configuracoes_*` - Configurações do sistema
 
-This project is built with:
+### Políticas de Segurança (RLS)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Todas as tabelas possuem políticas baseadas em:
+- `company_id` - Isolamento multi-tenant
+- `user_id` / `auth.uid()` - Propriedade do usuário
+- `role` - Permissões por função
 
-## How can I deploy this project?
+## 👥 Sistema de Permissões
 
-Simply open [Lovable](https://lovable.dev/projects/67ec9695-ef16-4493-8a28-888686e5d7d5) and click on Share -> Publish.
+5 níveis de acesso:
 
-## Can I connect a custom domain to my Lovable project?
+| Role | Descrição | Acesso |
+|------|-----------|--------|
+| **admin** | Administrador | Total |
+| **operacional** | Gestor de projetos | Projetos, Tarefas, Reuniões |
+| **cliente** | Cliente externo | Apenas seus projetos |
+| **financeiro** | Financeiro | Dados financeiros |
+| **vendas** | Vendas | Clientes e leads |
 
-Yes, you can!
+## 📁 Estrutura de Pastas
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+projetonexus/
+├── public/              # Arquivos estáticos
+├── src/
+│   ├── components/      # Componentes React
+│   │   ├── ui/         # 55 componentes shadcn
+│   │   ├── Layout/     # Sidebar, ProtectedRoute
+│   │   ├── settings/   # Componentes de Settings
+│   │   └── project-details/ # Componentes de ProjectDetails
+│   ├── pages/          # Páginas principais (8)
+│   ├── hooks/          # Custom hooks (6)
+│   ├── lib/            # Utilitários
+│   ├── integrations/   # Supabase client
+│   ├── data/           # Dados mockados
+│   ├── App.tsx         # Componente raiz
+│   ├── main.tsx        # Entry point
+│   └── index.css       # Estilos globais
+├── supabase/
+│   ├── migrations/     # 20 migrations SQL
+│   └── config.toml     # Config Supabase
+├── .env.example        # Template de variáveis
+├── .gitignore          # Arquivos ignorados
+├── vite.config.ts      # Config Vite
+├── tailwind.config.ts  # Config Tailwind
+├── tsconfig.json       # Config TypeScript
+└── package.json        # Dependências
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🚀 Scripts Disponíveis
+
+```bash
+# Desenvolvimento
+npm run dev          # Inicia servidor dev (porta 8080)
+
+# Build
+npm run build        # Build para produção
+npm run build:dev    # Build modo desenvolvimento
+
+# Linting
+npm run lint         # Verifica código com ESLint
+
+# Preview
+npm run preview      # Preview do build de produção
+```
+
+## 🔒 Segurança
+
+- ✅ Credenciais em variáveis de ambiente
+- ✅ Row Level Security (RLS) habilitado
+- ✅ Políticas multi-tenant por empresa
+- ✅ JWT tokens com refresh automático
+- ✅ Validação de formulários com Zod
+- ✅ TypeScript strict mode
+- ✅ CORS configurado
+- ✅ Sanitização de inputs
+
+## 📈 Performance
+
+### Bundle Size (otimizado com code splitting)
+
+- ✅ **index.js**: 428KB (100KB gzip)
+- ✅ **react-vendor**: 164KB (53KB gzip)
+- ✅ **supabase-vendor**: 165KB (45KB gzip)
+- ✅ **charts-vendor**: 359KB (98KB gzip)
+- ✅ **ui-vendor**: 114KB (37KB gzip)
+
+Total: ~1.3MB (298KB gzip)
+
+### Otimizações Implementadas
+
+- ⚡ Vite com SWC (compilação ultrarrápida)
+- 📦 Code splitting por vendor
+- 💾 Cache inteligente com React Query
+- 🎯 Lazy loading de componentes
+- 🗜️ Compressão gzip/brotli
+- 🔄 Prefetch de dados críticos
+
+## 🎨 Customização
+
+### Temas
+
+O projeto usa **next-themes** com suporte a:
+- 🌞 Light mode
+- 🌙 Dark mode
+- 💻 System preference
+
+### Cores
+
+Edite `src/index.css` para customizar as cores:
+```css
+:root {
+  --primary: ...;
+  --secondary: ...;
+  /* ... */
+}
+```
+
+### Componentes
+
+Todos os componentes shadcn podem ser customizados em:
+```
+src/components/ui/
+```
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT.
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📧 Contato
+
+Projeto Nexus - [@gruponexusmind](mailto:gruponexusmind@gmail.com)
+
+## 🙏 Agradecimentos
+
+- [React](https://react.dev/)
+- [Vite](https://vitejs.dev/)
+- [Supabase](https://supabase.com/)
+- [shadcn-ui](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lovable](https://lovable.dev/)
+
+---
+
+Feito com ❤️ pelo Grupo Nexus Mind

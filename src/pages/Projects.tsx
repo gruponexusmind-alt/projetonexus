@@ -59,14 +59,6 @@ export default function Projects() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  useEffect(() => {
-    filterProjects();
-  }, [filterProjects]);
-
   const fetchProjects = useCallback(async () => {
     try {
       // Query with optimized joins and real stats
@@ -152,6 +144,14 @@ export default function Projects() {
 
     setFilteredProjects(filtered);
   }, [projects, searchTerm, statusFilter, priorityFilter]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    filterProjects();
+  }, [filterProjects]);
 
   const handleProjectView = (projectId: string) => {
     window.location.href = `/projects/${projectId}`;

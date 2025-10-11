@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,8 +14,16 @@ import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 const Index = () => {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { metrics, projectStats, recentActivity, myTasks, upcomingMeetings } = useDashboardData();
+
+  // Redirecionar clientes para o dashboard do cliente
+  useEffect(() => {
+    if (profile && profile.role === 'cliente') {
+      navigate('/client/dashboard');
+    }
+  }, [profile, navigate]);
 
   // Dados para o gráfico de pizza
   const projectDistributionData = [

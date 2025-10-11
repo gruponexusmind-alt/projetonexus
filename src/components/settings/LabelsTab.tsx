@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash, Tags } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,7 @@ const defaultColors = [
 ];
 
 export function LabelsTab() {
+  const { profile } = useAuth();
   const [labels, setLabels] = useState<LabelItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingLabel, setEditingLabel] = useState<LabelItem | null>(null);
@@ -78,13 +80,22 @@ export function LabelsTab() {
   const createLabel = async () => {
     if (!newLabelName.trim()) return;
 
+    if (!profile?.company_id) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar a empresa.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('gp_labels')
         .insert({
           name: newLabelName.trim(),
           color: newLabelColor,
-          company_id: '00000000-0000-0000-0000-000000000000'
+          company_id: profile.company_id
         })
         .select()
         .single();

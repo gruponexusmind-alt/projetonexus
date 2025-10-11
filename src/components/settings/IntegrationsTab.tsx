@@ -6,16 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Plug, 
-  MessageCircle, 
-  Mail, 
-  Calendar, 
-  Database, 
+import {
+  Plug,
+  MessageCircle,
+  Mail,
+  Calendar,
+  Database,
   Settings as SettingsIcon,
   CheckCircle2,
   XCircle,
-  Loader2,
   AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +41,6 @@ interface IntegrationConfig {
     required?: boolean;
     options?: { label: string; value: string }[];
   }[];
-  testConnection?: boolean;
 }
 
 const integrationConfigs: IntegrationConfig[] = [
@@ -58,7 +56,6 @@ const integrationConfigs: IntegrationConfig[] = [
       { key: 'instance', label: 'Nome da Instância', type: 'text', placeholder: 'minha-instancia', required: true },
       { key: 'phone', label: 'Número Remetente', type: 'text', placeholder: '5511999999999' },
     ],
-    testConnection: true,
   },
   {
     id: 'email',
@@ -79,7 +76,6 @@ const integrationConfigs: IntegrationConfig[] = [
       { key: 'from_name', label: 'Nome do Remetente', type: 'text', placeholder: 'Sua Empresa' },
       { key: 'from_email', label: 'E-mail Remetente', type: 'text', placeholder: 'noreply@empresa.com' },
     ],
-    testConnection: true,
   },
   {
     id: 'calendar',
@@ -92,7 +88,6 @@ const integrationConfigs: IntegrationConfig[] = [
       { key: 'client_secret', label: 'Client Secret', type: 'password', placeholder: 'Google Client Secret', required: true },
       { key: 'calendar_id', label: 'Calendar ID', type: 'text', placeholder: 'primary ou ID específico' },
     ],
-    testConnection: false,
   },
   {
     id: 'storage',
@@ -105,7 +100,6 @@ const integrationConfigs: IntegrationConfig[] = [
       { key: 'bucket_assets', label: 'Bucket Assets', type: 'text', placeholder: 'company-assets' },
       { key: 'max_file_size', label: 'Tamanho Máximo (MB)', type: 'text', placeholder: '10' },
     ],
-    testConnection: true,
   },
 ];
 
@@ -116,7 +110,6 @@ export function IntegrationsTab() {
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null);
   const [configData, setConfigData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -201,36 +194,6 @@ export function IntegrationsTab() {
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    if (!selectedIntegration) return;
-
-    setTesting(true);
-    try {
-      // Mock test - in real implementation, you'd call the actual service
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Random success/failure for demo
-      const success = Math.random() > 0.3;
-      
-      if (success) {
-        toast({
-          title: 'Conexão OK',
-          description: 'Integração testada com sucesso',
-        });
-      } else {
-        throw new Error('Falha na conexão');
-      }
-    } catch (error) {
-      toast({
-        title: 'Erro de Conexão',
-        description: 'Verifique as configurações e tente novamente',
-        variant: 'destructive',
-      });
-    } finally {
-      setTesting(false);
     }
   };
 
@@ -402,35 +365,16 @@ export function IntegrationsTab() {
                             )}
                           </div>
                         ))}
-                        <div className="flex justify-between gap-2 mt-6 pt-4 border-t">
-                          <div className="flex gap-2">
-                            {config.testConnection && (
-                              <Button 
-                                variant="outline" 
-                                onClick={handleTestConnection}
-                                disabled={testing}
-                                className="flex items-center gap-2"
-                              >
-                                {testing ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="h-4 w-4" />
-                                )}
-                                {testing ? 'Testando...' : 'Testar Conexão'}
-                              </Button>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
-                              Cancelar
-                            </Button>
-                            <Button 
-                              onClick={handleSaveConfig} 
-                              disabled={saving}
-                            >
-                              {saving ? 'Salvando...' : 'Salvar'}
-                            </Button>
-                          </div>
+                        <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+                          <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={handleSaveConfig}
+                            disabled={saving}
+                          >
+                            {saving ? 'Salvando...' : 'Salvar'}
+                          </Button>
                         </div>
                       </div>
                     </DialogContent>

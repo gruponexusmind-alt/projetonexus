@@ -6,16 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Shield, 
-  Key, 
-  Download, 
-  Trash2, 
-  Eye, 
-  Clock,
-  AlertTriangle,
-  CheckCircle2,
-  Users,
+import {
+  Shield,
+  Key,
+  Download,
   Activity,
   FileDown
 } from 'lucide-react';
@@ -25,7 +19,6 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface SecuritySettings {
   id?: string;
-  autenticacao_dois_fatores: boolean;
   timeout_sessao: number;
   politica_senha_minima: number;
   exigir_caracteres_especiais: boolean;
@@ -45,7 +38,6 @@ interface AuditLog {
 export function SecurityTab() {
   const { profile } = useAuth();
   const [settings, setSettings] = useState<SecuritySettings>({
-    autenticacao_dois_fatores: false,
     timeout_sessao: 60,
     politica_senha_minima: 8,
     exigir_caracteres_especiais: true,
@@ -76,7 +68,6 @@ export function SecurityTab() {
       if (data) {
         setSettings({
           id: data.id,
-          autenticacao_dois_fatores: data.autenticacao_dois_fatores || false,
           timeout_sessao: data.timeout_sessao || 60,
           politica_senha_minima: data.politica_senha_minima || 8,
           exigir_caracteres_especiais: data.exigir_caracteres_especiais || true,
@@ -114,7 +105,6 @@ export function SecurityTab() {
     setSaving(true);
     try {
       const payload = {
-        autenticacao_dois_fatores: settings.autenticacao_dois_fatores,
         timeout_sessao: settings.timeout_sessao,
         politica_senha_minima: settings.politica_senha_minima,
         exigir_caracteres_especiais: settings.exigir_caracteres_especiais,
@@ -192,27 +182,6 @@ export function SecurityTab() {
       });
     } finally {
       setExportingData(false);
-    }
-  };
-
-  const handleRevokeAllSessions = async () => {
-    if (!confirm('Tem certeza que deseja encerrar todas as sessões ativas? Você precisará fazer login novamente.')) {
-      return;
-    }
-
-    try {
-      // In a real implementation, you'd call a Supabase function to revoke all sessions
-      toast({
-        title: 'Sucesso',
-        description: 'Todas as sessões foram encerradas',
-      });
-    } catch (error) {
-      console.error('Error revoking sessions:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao encerrar sessões',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -311,97 +280,6 @@ export function SecurityTab() {
         </CardContent>
       </Card>
 
-      {/* Two-Factor Authentication */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Autenticação de Dois Fatores
-          </CardTitle>
-          <CardDescription>
-            Adicione uma camada extra de segurança às contas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="font-medium">Habilitar 2FA</Label>
-              <p className="text-sm text-muted-foreground">
-                Exigir código de verificação adicional no login
-              </p>
-              <Badge variant="outline" className="mt-2">
-                Em Desenvolvimento
-              </Badge>
-            </div>
-            <Switch
-              checked={settings.autenticacao_dois_fatores}
-              onCheckedChange={(checked) => setSettings(prev => ({ 
-                ...prev, 
-                autenticacao_dois_fatores: checked 
-              }))}
-              disabled={true}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Session Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Gerenciamento de Sessões
-          </CardTitle>
-          <CardDescription>
-            Controle as sessões ativas do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Sessões Ativas</h4>
-              <p className="text-sm text-muted-foreground">
-                Gerencie todas as sessões ativas no sistema
-              </p>
-            </div>
-            <Button 
-              variant="destructive" 
-              onClick={handleRevokeAllSessions}
-              className="flex items-center gap-2"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Encerrar Todas
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="font-medium">Sessão Atual</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Navegador: Chrome • IP: 192.168.1.100
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Ativa há 2 horas
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="font-medium">Últimas Sessões</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                2 sessões encerradas nas últimas 24h
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Mobile • Desktop
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Audit Logs */}
       <Card>
@@ -461,49 +339,27 @@ export function SecurityTab() {
         </CardContent>
       </Card>
 
-      {/* Data Export & Privacy */}
+      {/* Data Export */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            Dados e Privacidade
+            Exportar Dados
           </CardTitle>
           <CardDescription>
-            Exporte seus dados ou solicite exclusão da conta
+            Baixe uma cópia de todos os seus dados pessoais em formato JSON
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Exportar Dados</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Baixe uma cópia de todos os seus dados pessoais
-              </p>
-              <Button 
-                variant="outline" 
-                onClick={handleExportData}
-                disabled={exportingData}
-                className="flex items-center gap-2 w-full"
-              >
-                <FileDown className="h-4 w-4" />
-                {exportingData ? 'Exportando...' : 'Exportar JSON'}
-              </Button>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2 text-destructive">Exclusão de Conta</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Solicitar exclusão permanente da conta e dados
-              </p>
-              <Button 
-                variant="destructive" 
-                className="flex items-center gap-2 w-full"
-                onClick={() => alert('Entre em contato com o administrador para solicitar exclusão')}
-              >
-                <Trash2 className="h-4 w-4" />
-                Solicitar Exclusão
-              </Button>
-            </div>
-          </div>
+        <CardContent>
+          <Button
+            variant="outline"
+            onClick={handleExportData}
+            disabled={exportingData}
+            className="flex items-center gap-2"
+          >
+            <FileDown className="h-4 w-4" />
+            {exportingData ? 'Exportando...' : 'Exportar JSON'}
+          </Button>
         </CardContent>
       </Card>
     </div>

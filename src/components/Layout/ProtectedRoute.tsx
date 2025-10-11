@@ -20,7 +20,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   useEffect(() => {
     if (!loading && profile && allowedRoles && !allowedRoles.includes(profile.role)) {
-      navigate('/');
+      // Se é um cliente tentando acessar área interna, redireciona para dashboard do cliente
+      if (profile.role === 'cliente') {
+        navigate('/client/dashboard');
+      } else {
+        // Se é admin/operacional tentando acessar área do cliente, redireciona para dashboard interno
+        navigate('/');
+      }
     }
   }, [profile, loading, allowedRoles, navigate]);
 

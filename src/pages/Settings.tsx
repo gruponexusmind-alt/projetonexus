@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Building2, 
-  Users, 
-  UserCheck, 
-  Plug, 
-  Bell, 
-  Shield, 
+import {
+  Building2,
+  Users,
+  UserCheck,
+  Plug,
+  Shield,
   Settings as SettingsIcon,
   Tags
 } from 'lucide-react';
@@ -17,7 +16,6 @@ import { OrganizationTab } from '@/components/settings/OrganizationTab';
 import { UsersAccessTab } from '@/components/settings/UsersAccessTab';
 import { ResourcesTab } from '@/components/settings/ResourcesTab';
 import { IntegrationsTab } from '@/components/settings/IntegrationsTab';
-import { NotificationsTab } from '@/components/settings/NotificationsTab';
 import { SecurityTab } from '@/components/settings/SecurityTab';
 import { LabelsTab } from '@/components/settings/LabelsTab';
 
@@ -53,12 +51,6 @@ const settingsTabs = [
     description: 'Conectar com sistemas externos',
   },
   {
-    id: 'notifications',
-    label: 'Notificações',
-    description: 'Preferências de notificação e templates',
-    icon: Bell,
-  },
-  {
     id: 'security',
     label: 'Segurança',
     icon: Shield,
@@ -86,7 +78,7 @@ export default function Settings() {
           {/* Vertical Navigation */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
-              <TabsList className="grid w-full grid-cols-1 lg:grid-rows-7 h-auto bg-gradient-to-b from-muted/30 to-muted/50 p-3 rounded-xl border shadow-sm">
+              <TabsList className="grid w-full grid-cols-1 lg:grid-rows-6 h-auto bg-gradient-to-b from-muted/30 to-muted/50 p-3 rounded-xl border shadow-sm">
                 {settingsTabs.map((tab) => {
                   const IconComponent = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -137,10 +129,6 @@ export default function Settings() {
 
               <TabsContent value="integrations" className="mt-0">
                 <IntegrationsTab />
-              </TabsContent>
-
-              <TabsContent value="notifications" className="mt-0">
-                <NotificationsTab />
               </TabsContent>
 
               <TabsContent value="security" className="mt-0">

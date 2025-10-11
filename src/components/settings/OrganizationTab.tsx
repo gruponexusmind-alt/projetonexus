@@ -4,13 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Building2, Upload, Save, Clock, MapPin } from 'lucide-react';
+import { Building2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 
 interface CompanySettings {
   id?: string;
@@ -19,27 +15,7 @@ interface CompanySettings {
   email: string;
   telefone: string;
   endereco: string;
-  logo_url?: string;
-  timezone?: string;
-  work_days?: string[];
-  work_hours?: { start: string; end: string };
 }
-
-const workDaysOptions = [
-  { id: 'monday', label: 'Segunda-feira' },
-  { id: 'tuesday', label: 'Terça-feira' },
-  { id: 'wednesday', label: 'Quarta-feira' },
-  { id: 'thursday', label: 'Quinta-feira' },
-  { id: 'friday', label: 'Sexta-feira' },
-  { id: 'saturday', label: 'Sábado' },
-  { id: 'sunday', label: 'Domingo' },
-];
-
-const timezones = [
-  { value: 'America/Sao_Paulo', label: 'Brasília (GMT-3)' },
-  { value: 'America/Manaus', label: 'Amazonas (GMT-4)' },
-  { value: 'America/Rio_Branco', label: 'Acre (GMT-5)' },
-];
 
 export function OrganizationTab() {
   const [settings, setSettings] = useState<CompanySettings>({
@@ -48,9 +24,6 @@ export function OrganizationTab() {
     email: '',
     telefone: '',
     endereco: '',
-    timezone: 'America/Sao_Paulo',
-    work_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    work_hours: { start: '09:00', end: '18:00' },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,10 +52,6 @@ export function OrganizationTab() {
           email: data.email || '',
           telefone: data.telefone || '',
           endereco: data.endereco || '',
-          logo_url: data.logo_url,
-          timezone: 'America/Sao_Paulo', // Default fallback
-          work_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-          work_hours: { start: '09:00', end: '18:00' },
         });
       }
     } catch (error) {
@@ -106,7 +75,6 @@ export function OrganizationTab() {
         email: settings.email,
         telefone: settings.telefone,
         endereco: settings.endereco,
-        logo_url: settings.logo_url,
         updated_at: new Date().toISOString(),
       };
 
@@ -141,20 +109,6 @@ export function OrganizationTab() {
       });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleWorkDayChange = (dayId: string, checked: boolean) => {
-    if (checked) {
-      setSettings(prev => ({
-        ...prev,
-        work_days: [...(prev.work_days || []), dayId]
-      }));
-    } else {
-      setSettings(prev => ({
-        ...prev,
-        work_days: (prev.work_days || []).filter(day => day !== dayId)
-      }));
     }
   };
 
@@ -247,139 +201,6 @@ export function OrganizationTab() {
         </CardContent>
       </Card>
 
-      {/* Work Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Configurações de Trabalho
-          </CardTitle>
-          <CardDescription>
-            Defina os dias e horários de funcionamento da empresa
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Timezone */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Fuso Horário
-            </Label>
-            <Select
-              value={settings.timezone}
-              onValueChange={(value) => setSettings(prev => ({ ...prev, timezone: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o fuso horário" />
-              </SelectTrigger>
-              <SelectContent>
-                {timezones.map((tz) => (
-                  <SelectItem key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
-          {/* Work Days */}
-          <div className="space-y-3">
-            <Label>Dias Úteis</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {workDaysOptions.map((day) => (
-                <div key={day.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={day.id}
-                    checked={(settings.work_days || []).includes(day.id)}
-                    onCheckedChange={(checked) => handleWorkDayChange(day.id, checked as boolean)}
-                  />
-                  <Label htmlFor={day.id} className="text-sm font-normal">
-                    {day.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Work Hours */}
-          <div className="space-y-3">
-            <Label>Horário de Funcionamento</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="work-start" className="text-sm text-muted-foreground">
-                  Início
-                </Label>
-                <Input
-                  id="work-start"
-                  type="time"
-                  value={settings.work_hours?.start || '09:00'}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    work_hours: { ...prev.work_hours, start: e.target.value } as any
-                  }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="work-end" className="text-sm text-muted-foreground">
-                  Fim
-                </Label>
-                <Input
-                  id="work-end"
-                  type="time"
-                  value={settings.work_hours?.end || '18:00'}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    work_hours: { ...prev.work_hours, end: e.target.value } as any
-                  }))}
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Logo Upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo da Empresa</CardTitle>
-          <CardDescription>
-            Faça upload do logo que aparecerá no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {settings.logo_url && (
-              <div className="flex items-center gap-4">
-                <img 
-                  src={settings.logo_url} 
-                  alt="Logo atual" 
-                  className="h-16 w-16 object-contain border rounded"
-                />
-                <div>
-                  <p className="text-sm font-medium">Logo atual</p>
-                  <p className="text-xs text-muted-foreground">
-                    Clique em "Escolher arquivo" para alterar
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center gap-4">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Escolher Arquivo
-              </Button>
-              <div className="text-sm text-muted-foreground">
-                <p>Formatos aceitos: PNG, JPG, SVG</p>
-                <p>Tamanho máximo: 2MB</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

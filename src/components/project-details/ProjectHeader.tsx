@@ -3,11 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Upload, Edit, User, Calendar, BarChart3, List } from 'lucide-react';
+import { Plus, Upload, Edit, User, Calendar, BarChart3, List, Share2 } from 'lucide-react';
 import { CreateTaskModal } from '@/components/CreateTaskModal';
 import { DocumentDetailsModal } from '@/components/DocumentDetailsModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { ManageStagesModal } from '@/components/ManageStagesModal';
+import { ShareProjectModal } from '@/components/ShareProjectModal';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
@@ -210,6 +211,12 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
               Editar
             </Button>
           </EditProjectModal>
+          <ShareProjectModal projectId={project.id} projectTitle={project.title}>
+            <Button variant="outline" size="sm">
+              <Share2 className="h-4 w-4 mr-2" />
+              Compartilhar
+            </Button>
+          </ShareProjectModal>
         </div>
       </div>
 

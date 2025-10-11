@@ -18,6 +18,9 @@ import TasksDebug from "./pages/TasksDebug";
 import Meetings from "./pages/Meetings";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ClientDashboard from "./pages/ClientDashboard";
+import ClientProjectDetail from "./pages/ClientProjectDetail";
+import ClientInvite from "./pages/ClientInvite";
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
@@ -46,7 +49,22 @@ const App = () => {
             <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              
+
+              {/* Client Routes - Public invitation */}
+              <Route path="/client/invite/:token" element={<ClientInvite />} />
+
+              {/* Client Routes - Protected */}
+              <Route path="/client/dashboard" element={
+                <ProtectedRoute allowedRoles={['cliente']}>
+                  <ClientDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/client/project/:projectId" element={
+                <ProtectedRoute allowedRoles={['cliente']}>
+                  <ClientProjectDetail />
+                </ProtectedRoute>
+              } />
+
               <Route path="/projects" element={
                 <ProtectedRoute allowedRoles={['admin', 'operacional']}>
                   <SidebarProvider>

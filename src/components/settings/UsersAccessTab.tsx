@@ -55,7 +55,7 @@ export function UsersAccessTab() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'operacional' });
+  const [inviteData, setInviteData] = useState({ name: '', email: '', password: '', role: 'operacional' });
   const [inviting, setInviting] = useState(false);
   const { toast } = useToast();
 
@@ -85,35 +85,47 @@ export function UsersAccessTab() {
   };
 
   const handleInviteUser = async () => {
+    // Validate password
+    if (!inviteData.password || inviteData.password.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter no mínimo 6 caracteres',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setInviting(true);
     try {
-      // For now, we'll create a placeholder user entry
-      // In a real implementation, you'd send an invitation email
-        const { error } = await supabase
-        .from('profiles')
-        .insert([{
-          user_id: crypto.randomUUID(), // Temporary user_id until real invitation
-          nome: inviteData.name,
+      // Call Edge Function to create user
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
           email: inviteData.email,
-          role: inviteData.role as any,
-          ativo: false, // Will be activated when user accepts invite
-        }]);
+          password: inviteData.password,
+          name: inviteData.name,
+          role: inviteData.role,
+        }
+      });
 
       if (error) throw error;
 
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       toast({
-        title: 'Convite Enviado',
-        description: `Convite enviado para ${inviteData.email}`,
+        title: 'Usuário Criado',
+        description: `${inviteData.name} foi criado com sucesso e já pode fazer login.`,
       });
 
-      setInviteData({ name: '', email: '', role: 'operacional' });
+      setInviteData({ name: '', email: '', password: '', role: 'operacional' });
       setInviteOpen(false);
       loadUsers();
-    } catch (error) {
-      console.error('Error inviting user:', error);
+    } catch (error: any) {
+      console.error('Error creating user:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao enviar convite',
+        description: error.message || 'Erro ao criar usuário',
         variant: 'destructive',
       });
     } finally {
@@ -197,12 +209,12 @@ export function UsersAccessTab() {
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
-              Convidar Usuário
+              Criar Usuário
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Convidar Novo Usuário</DialogTitle>
+              <DialogTitle>Criar Novo Usuário</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -225,6 +237,16 @@ export function UsersAccessTab() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="invite-password">Senha</Label>
+                <Input
+                  id="invite-password"
+                  type="password"
+                  value={inviteData.password}
+                  onChange={(e) => setInviteData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="invite-role">Nível de Acesso</Label>
                 <Select
                   value={inviteData.role}
@@ -243,13 +265,13 @@ export function UsersAccessTab() {
                 <Button variant="outline" onClick={() => setInviteOpen(false)}>
                   Cancelar
                 </Button>
-                <Button 
-                  onClick={handleInviteUser} 
-                  disabled={inviting || !inviteData.name || !inviteData.email}
+                <Button
+                  onClick={handleInviteUser}
+                  disabled={inviting || !inviteData.name || !inviteData.email || !inviteData.password}
                   className="flex items-center gap-2"
                 >
-                  <Mail className="h-4 w-4" />
-                  {inviting ? 'Enviando...' : 'Enviar Convite'}
+                  <UserPlus className="h-4 w-4" />
+                  {inviting ? 'Criando...' : 'Criar Usuário'}
                 </Button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Calendar as CalendarIcon, Clock, Users, Video } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
 
 interface Meeting {
   id: string;
@@ -24,6 +26,8 @@ interface Meeting {
     id: string;
   };
   attendees: any[];
+  sync_source?: 'local' | 'google' | 'both';
+  google_calendar_event_id?: string;
 }
 
 export default function Meetings() {
@@ -31,6 +35,7 @@ export default function Meetings() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { googleEvents, isConnected, isLoadingEvents } = useGoogleCalendar();
 
   useEffect(() => {
     fetchMeetings();
@@ -121,13 +126,49 @@ export default function Meetings() {
     });
   };
 
-  const todayMeetings = meetings.filter(meeting => {
+  // Merge local meetings with Google Calendar events
+  const allMeetings = useMemo(() => {
+    if (!isConnected || !googleEvents) return meetings;
+
+    const googleMeetings: Meeting[] = googleEvents.map(event => ({
+      id: event.id,
+      title: event.summary,
+      description: event.description || '',
+      meeting_date: event.start.dateTime || event.start.date || '',
+      duration_minutes: event.start.dateTime && event.end.dateTime
+        ? Math.round((new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000)
+        : 60,
+      status: event.status === 'confirmed' ? 'scheduled' : event.status,
+      meeting_type: 'internal',
+      meeting_link: event.htmlLink || '',
+      notes: '',
+      project: {
+        id: '',
+        title: 'Google Calendar'
+      },
+      attendees: event.attendees || [],
+      sync_source: 'google',
+      google_calendar_event_id: event.id
+    }));
+
+    // Filter out local meetings that are already synced with Google
+    const localMeetings = meetings.filter(m =>
+      !m.google_calendar_event_id ||
+      !googleMeetings.some(g => g.google_calendar_event_id === m.google_calendar_event_id)
+    );
+
+    return [...localMeetings, ...googleMeetings].sort((a, b) =>
+      new Date(a.meeting_date).getTime() - new Date(b.meeting_date).getTime()
+    );
+  }, [meetings, googleEvents, isConnected]);
+
+  const todayMeetings = allMeetings.filter(meeting => {
     const meetingDate = new Date(meeting.meeting_date);
     const today = new Date();
     return meetingDate.toDateString() === today.toDateString();
   });
 
-  const upcomingMeetings = meetings.filter(meeting => {
+  const upcomingMeetings = allMeetings.filter(meeting => {
     const meetingDate = new Date(meeting.meeting_date);
     const today = new Date();
     return meetingDate > today;
@@ -191,7 +232,7 @@ export default function Meetings() {
                           <CardTitle className="text-lg">{meeting.title}</CardTitle>
                           <CardDescription>{meeting.project.title}</CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Badge className={getStatusColor(meeting.status)}>
                             {meeting.status === 'scheduled' && 'Agendada'}
                             {meeting.status === 'in_progress' && 'Em Andamento'}
@@ -204,6 +245,11 @@ export default function Meetings() {
                             {meeting.meeting_type === 'kickoff' && 'Kickoff'}
                             {meeting.meeting_type === 'review' && 'Revisão'}
                           </Badge>
+                          {meeting.sync_source === 'google' && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                              Google Calendar
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -255,12 +301,19 @@ export default function Meetings() {
                           <CardTitle className="text-lg">{meeting.title}</CardTitle>
                           <CardDescription>{meeting.project.title}</CardDescription>
                         </div>
-                        <Badge className={getTypeColor(meeting.meeting_type)}>
-                          {meeting.meeting_type === 'internal' && 'Interna'}
-                          {meeting.meeting_type === 'client' && 'Cliente'}
-                          {meeting.meeting_type === 'kickoff' && 'Kickoff'}
-                          {meeting.meeting_type === 'review' && 'Revisão'}
-                        </Badge>
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge className={getTypeColor(meeting.meeting_type)}>
+                            {meeting.meeting_type === 'internal' && 'Interna'}
+                            {meeting.meeting_type === 'client' && 'Cliente'}
+                            {meeting.meeting_type === 'kickoff' && 'Kickoff'}
+                            {meeting.meeting_type === 'review' && 'Revisão'}
+                          </Badge>
+                          {meeting.sync_source === 'google' && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                              Google Calendar
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -287,14 +340,14 @@ export default function Meetings() {
 
             <TabsContent value="all" className="space-y-4">
               <h3 className="text-lg font-semibold">Todas as Reuniões</h3>
-              {meetings.length === 0 ? (
+              {allMeetings.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center text-muted-foreground">
                     Nenhuma reunião encontrada.
                   </CardContent>
                 </Card>
               ) : (
-                meetings.map((meeting) => (
+                allMeetings.map((meeting) => (
                   <Card key={meeting.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
@@ -302,7 +355,7 @@ export default function Meetings() {
                           <CardTitle className="text-lg">{meeting.title}</CardTitle>
                           <CardDescription>{meeting.project.title}</CardDescription>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Badge className={getStatusColor(meeting.status)}>
                             {meeting.status === 'scheduled' && 'Agendada'}
                             {meeting.status === 'in_progress' && 'Em Andamento'}
@@ -315,6 +368,11 @@ export default function Meetings() {
                             {meeting.meeting_type === 'kickoff' && 'Kickoff'}
                             {meeting.meeting_type === 'review' && 'Revisão'}
                           </Badge>
+                          {meeting.sync_source === 'google' && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                              Google Calendar
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -343,6 +401,9 @@ export default function Meetings() {
         </div>
 
         <div className="space-y-6">
+          {/* Google Calendar Integration */}
+          <GoogleCalendarConnect variant="card" showStats={true} />
+
           <Card>
             <CardHeader>
               <CardTitle>Calendário</CardTitle>
@@ -373,7 +434,7 @@ export default function Meetings() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Total</span>
-                  <span className="font-medium">{meetings.length}</span>
+                  <span className="font-medium">{allMeetings.length}</span>
                 </div>
               </div>
             </CardContent>

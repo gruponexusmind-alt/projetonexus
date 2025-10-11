@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Upload, Edit, User, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Upload, Edit, User, Calendar, BarChart3, List } from 'lucide-react';
 import { CreateTaskModal } from '@/components/CreateTaskModal';
 import { DocumentDetailsModal } from '@/components/DocumentDetailsModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
+import { ManageStagesModal } from '@/components/ManageStagesModal';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
   id: string;
@@ -34,6 +37,14 @@ interface ProjectStats {
   progress_score: number;
 }
 
+interface Stage {
+  id: string;
+  name: string;
+  order_index: number;
+  is_current: boolean;
+  completed_at: string | null;
+}
+
 interface ProjectHeaderProps {
   project: Project;
   stats: ProjectStats | null;
@@ -41,6 +52,35 @@ interface ProjectHeaderProps {
 }
 
 export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps) {
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [currentStage, setCurrentStage] = useState<Stage | null>(null);
+
+  useEffect(() => {
+    fetchStages();
+  }, [project.id]);
+
+  const fetchStages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gp_project_stages')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('order_index');
+
+      if (error) throw error;
+
+      setStages(data || []);
+      const current = (data || []).find((stage: Stage) => stage.is_current);
+      setCurrentStage(current || null);
+    } catch (error) {
+      console.error('Erro ao carregar etapas:', error);
+    }
+  };
+
+  const handleStagesUpdated = () => {
+    fetchStages();
+    onRefresh();
+  };
   const getStatusColor = (status: string) => {
     const colors = {
       onboarding: 'bg-blue-500',
@@ -109,13 +149,37 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
             >
               {getPriorityLabel(project.priority)}
             </Badge>
-            <Badge variant="outline" className="flex items-center gap-1.5 text-xs">
-              <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(project.status)}`} />
-              {getStatusLabel(project.status)}
-            </Badge>
+
+            {/* Current Custom Stage */}
+            {currentStage ? (
+              <Badge variant="outline" className="flex items-center gap-1.5 text-xs">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  currentStage.completed_at ? 'bg-green-500' : 'bg-blue-500'
+                }`} />
+                {currentStage.name}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1.5 text-xs">
+                <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(project.status)}`} />
+                {getStatusLabel(project.status)}
+              </Badge>
+            )}
+
             <Badge variant="outline" className="text-xs">
-              {project.complexity}/5
+              Complexidade {project.complexity}/5
             </Badge>
+
+            {/* Manage Stages Button */}
+            <ManageStagesModal
+              projectId={project.id}
+              companyId={project.company_id}
+              onStagesUpdated={handleStagesUpdated}
+            >
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                <List className="h-3 w-3 mr-1" />
+                {currentStage ? 'Gerenciar Etapas' : 'Criar Etapas'}
+              </Button>
+            </ManageStagesModal>
           </div>
         </div>
 

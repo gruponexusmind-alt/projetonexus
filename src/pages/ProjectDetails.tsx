@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Upload, Edit, BarChart3, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,15 +60,9 @@ export default function ProjectDetails() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    if (projectId) {
-      fetchProjectData();
-    }
-  }, [projectId]);
-
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     if (!projectId) return;
-    
+
     setLoading(true);
     try {
       // Fetch project details
@@ -88,7 +82,7 @@ export default function ProjectDetails() {
           .select('id, name, email, phone')
           .eq('id', projectData.client_id)
           .single();
-        
+
         if (clientResponse) {
           clientData = clientResponse;
         }
@@ -130,7 +124,13 @@ export default function ProjectDetails() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, toast]);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectData();
+    }
+  }, [projectId, fetchProjectData]);
 
   const handleBack = () => {
     navigate('/projects');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, MoreVertical, Eye, Archive, Trash2, ArchiveRestore, Tags } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -61,13 +61,13 @@ export default function Projects() {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   useEffect(() => {
     filterProjects();
-  }, [projects, searchTerm, statusFilter, priorityFilter, showArchived]);
+  }, [filterProjects]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       // Query with optimized joins and real stats
       const query = supabase
@@ -127,16 +127,16 @@ export default function Projects() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showArchived, toast]);
 
-  const filterProjects = () => {
+  const filterProjects = useCallback(() => {
     let filtered = projects;
 
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.labels.some(label => 
+        project.labels.some(label =>
           label.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
@@ -151,7 +151,7 @@ export default function Projects() {
     }
 
     setFilteredProjects(filtered);
-  };
+  }, [projects, searchTerm, statusFilter, priorityFilter]);
 
   const handleProjectView = (projectId: string) => {
     window.location.href = `/projects/${projectId}`;

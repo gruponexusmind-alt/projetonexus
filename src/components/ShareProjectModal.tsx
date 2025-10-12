@@ -37,8 +37,12 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 dias
     };
 
-    // Codificar em base64 (em produção, usar assinatura JWT real)
-    const token = btoa(JSON.stringify(payload));
+    // Codificar em base64url (URL-safe: sem +, /, =)
+    const token = btoa(JSON.stringify(payload))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
     return token;
   };
 

@@ -42,52 +42,54 @@ export default function ClientInvite() {
     try {
       setLoading(true);
 
-      // Decodificar o token (assumindo JWT base64)
-      // Em produção, você deve validar isso no backend via Edge Function
-      const decoded = JSON.parse(atob(token || ''));
+      console.log('🔍 Validando token:', token?.substring(0, 20) + '...');
 
-      // Validar expiração
-      if (decoded.exp && decoded.exp < Date.now()) {
+      // Chamar Edge Function para validar (bypassa RLS)
+      const { data, error } = await supabase.functions.invoke('validate-invite', {
+        body: { token },
+      });
+
+      console.log('📡 Resposta da Edge Function:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro na Edge Function:', error);
         setTokenValid(false);
         toast({
-          title: 'Convite Expirado',
-          description: 'Este link de convite expirou. Entre em contato com nossa equipe.',
+          title: 'Erro ao Validar',
+          description: error.message || 'Erro ao validar convite',
           variant: 'destructive',
         });
         return;
       }
 
-      // Buscar dados do cliente e projeto
-      const { data: clientData } = await supabase
-        .from('gp_clients')
-        .select('name')
-        .eq('id', decoded.client_id)
-        .single();
-
-      const { data: projectData } = await supabase
-        .from('gp_projects')
-        .select('title')
-        .eq('id', decoded.project_id)
-        .single();
-
-      if (clientData && projectData) {
-        setInviteData({
-          client_id: decoded.client_id,
-          project_id: decoded.project_id,
-          email: decoded.email,
-          client_name: clientData.name,
-          project_title: projectData.title,
-        });
-        setTokenValid(true);
-      } else {
+      if (!data || !data.valid) {
+        console.error('❌ Token inválido:', data);
         setTokenValid(false);
+        toast({
+          title: data?.expired ? 'Convite Expirado' : 'Convite Inválido',
+          description: data?.error || 'O link de convite é inválido ou expirou.',
+          variant: 'destructive',
+        });
+        return;
       }
-    } catch (error) {
-      console.error('Error validating token:', error);
+
+      // Token válido - configurar dados
+      console.log('✅ Token válido:', data);
+      setInviteData({
+        client_id: data.client_id,
+        project_id: data.project_id,
+        email: data.email,
+        client_name: data.client_name,
+        project_title: data.project_title,
+      });
+      setTokenValid(true);
+
+    } catch (error: any) {
+      console.error('❌ Erro ao validar token:', error);
       setTokenValid(false);
       toast({
-        title: 'Convite Inválido',
-        description: 'O link de convite é inválido ou está mal formatado.',
+        title: 'Erro',
+        description: error.message || 'Erro ao processar convite',
         variant: 'destructive',
       });
     } finally {

@@ -16,7 +16,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recha
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { metrics, projectStats, recentActivity, myTasks, upcomingMeetings } = useDashboardData();
+  const { metrics, projectStats, recentActivity, myTasks, upcomingMeetings, tasksByStage } = useDashboardData();
 
   // Redirecionar clientes para o dashboard do cliente
   useEffect(() => {
@@ -364,6 +364,77 @@ const Index = () => {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Tarefas por Etapa do Projeto
+              </CardTitle>
+              <CardDescription>
+                Distribuição de tarefas por etapas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {tasksByStage.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Target className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma tarefa atribuída a etapas
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tasksByStage.slice(0, 6).map((stage) => (
+                    <div key={stage.stage_id || 'no_stage'} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">{stage.stage_name}</span>
+                        <Badge variant="outline" className="ml-2">
+                          {stage.task_count} {stage.task_count === 1 ? 'tarefa' : 'tarefas'}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        {stage.pending > 0 && (
+                          <div
+                            className="h-2 bg-slate-400 rounded-full transition-all"
+                            style={{ width: `${(stage.pending / stage.task_count) * 100}%` }}
+                            title={`${stage.pending} pendente(s)`}
+                          />
+                        )}
+                        {stage.in_progress > 0 && (
+                          <div
+                            className="h-2 bg-primary rounded-full transition-all"
+                            style={{ width: `${(stage.in_progress / stage.task_count) * 100}%` }}
+                            title={`${stage.in_progress} em progresso`}
+                          />
+                        )}
+                        {stage.review > 0 && (
+                          <div
+                            className="h-2 bg-amber-500 rounded-full transition-all"
+                            style={{ width: `${(stage.review / stage.task_count) * 100}%` }}
+                            title={`${stage.review} em revisão`}
+                          />
+                        )}
+                        {stage.completed > 0 && (
+                          <div
+                            className="h-2 bg-success rounded-full transition-all"
+                            style={{ width: `${(stage.completed / stage.task_count) * 100}%` }}
+                            title={`${stage.completed} concluída(s)`}
+                          />
+                        )}
+                      </div>
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        {stage.pending > 0 && <span className="flex items-center gap-1"><div className="w-2 h-2 bg-slate-400 rounded-full"></div>{stage.pending} pendente</span>}
+                        {stage.in_progress > 0 && <span className="flex items-center gap-1"><div className="w-2 h-2 bg-primary rounded-full"></div>{stage.in_progress} em progresso</span>}
+                        {stage.review > 0 && <span className="flex items-center gap-1"><div className="w-2 h-2 bg-amber-500 rounded-full"></div>{stage.review} revisão</span>}
+                        {stage.completed > 0 && <span className="flex items-center gap-1"><div className="w-2 h-2 bg-success rounded-full"></div>{stage.completed} concluída</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

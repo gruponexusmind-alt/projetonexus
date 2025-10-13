@@ -46,6 +46,16 @@ interface UpcomingMeeting {
   project_title: string;
 }
 
+interface TasksByStage {
+  stage_id: string | null;
+  stage_name: string;
+  task_count: number;
+  pending: number;
+  in_progress: number;
+  review: number;
+  completed: number;
+}
+
 export function useDashboardData() {
   const { user } = useAuth();
 
@@ -70,6 +80,7 @@ export function useDashboardData() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [myTasks, setMyTasks] = useState<MyTask[]>([]);
   const [upcomingMeetings, setUpcomingMeetings] = useState<UpcomingMeeting[]>([]);
+  const [tasksByStage, setTasksByStage] = useState<TasksByStage[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -282,6 +293,46 @@ export function useDashboardData() {
       setMyTasks(formattedMyTasks);
       setUpcomingMeetings(formattedUpcomingMeetings);
 
+      // Buscar tarefas por etapa
+      const { data: tasksData } = await supabase
+        .from('gp_tasks')
+        .select(`
+          id,
+          status,
+          stage_id,
+          stage:gp_project_stages(id, name)
+        `);
+
+      // Agrupar tarefas por etapa
+      const stageGroups: { [key: string]: TasksByStage } = {};
+
+      tasksData?.forEach((task: any) => {
+        const stageId = task.stage_id || 'no_stage';
+        const stageName = task.stage?.name || 'Sem Etapa';
+
+        if (!stageGroups[stageId]) {
+          stageGroups[stageId] = {
+            stage_id: task.stage_id,
+            stage_name: stageName,
+            task_count: 0,
+            pending: 0,
+            in_progress: 0,
+            review: 0,
+            completed: 0,
+          };
+        }
+
+        stageGroups[stageId].task_count++;
+
+        if (task.status === 'pending') stageGroups[stageId].pending++;
+        else if (task.status === 'in_progress') stageGroups[stageId].in_progress++;
+        else if (task.status === 'review') stageGroups[stageId].review++;
+        else if (task.status === 'completed') stageGroups[stageId].completed++;
+      });
+
+      const tasksByStageArray = Object.values(stageGroups).sort((a, b) => b.task_count - a.task_count);
+      setTasksByStage(tasksByStageArray);
+
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
       setMetrics(prev => ({ ...prev, loading: false }));
@@ -294,6 +345,7 @@ export function useDashboardData() {
     recentActivity,
     myTasks,
     upcomingMeetings,
+    tasksByStage,
     refresh: loadDashboardData,
   };
 }

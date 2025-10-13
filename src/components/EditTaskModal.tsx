@@ -24,7 +24,8 @@ const taskSchema = z.object({
   status: z.enum(['pending', 'in_progress', 'review', 'completed']),
   priority: z.enum(['low', 'medium', 'high']),
   estimated_hours: z.number().min(0, 'Horas estimadas inválidas').max(999, 'Máximo 999 horas').optional(),
-  due_date: z.date().optional()
+  due_date: z.date().optional(),
+  stage_id: z.string().optional()
 });
 
 interface Task {
@@ -38,6 +39,7 @@ interface Task {
   assigned_to?: string;
   project_id: string;
   company_id: string;
+  stage_id?: string;
 }
 
 interface Label {
@@ -63,15 +65,18 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
     priority: task.priority,
     estimated_hours: task.estimated_hours || '',
     due_date: task.due_date ? new Date(task.due_date) : undefined,
-    assigned_to: task.assigned_to || 'unassigned'
+    assigned_to: task.assigned_to || 'unassigned',
+    stage_id: task.stage_id || ''
   });
   const [profiles, setProfiles] = useState<Array<{id: string, nome: string}>>([]);
+  const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       fetchTaskLabels();
       fetchProfiles();
+      fetchStages();
     }
   }, [open, task.id]);
 
@@ -105,6 +110,20 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
     }
   };
 
+  const fetchStages = async () => {
+    try {
+      const { data } = await supabase
+        .from('gp_project_stages')
+        .select('id, name')
+        .eq('project_id', task.project_id)
+        .order('order_index', { ascending: true });
+
+      setStages(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar etapas:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -128,6 +147,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           estimated_hours: validatedData.estimated_hours || null,
           due_date: validatedData.due_date ? validatedData.due_date.toISOString().split('T')[0] : null,
           assigned_to: formData.assigned_to === 'unassigned' ? null : formData.assigned_to,
+          stage_id: formData.stage_id || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', task.id);
@@ -338,6 +358,24 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
               selectedLabels={selectedLabels}
               onLabelsChange={setSelectedLabels}
             />
+          </div>
+
+          {/* Etapa do Projeto */}
+          <div className="space-y-2">
+            <Label>Etapa do Projeto</Label>
+            <Select value={formData.stage_id} onValueChange={(value) => handleChange('stage_id', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma etapa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma</SelectItem>
+                {stages.map((stage) => (
+                  <SelectItem key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Dependências */}

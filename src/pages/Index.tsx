@@ -43,18 +43,18 @@ const Index = () => {
         {/* Main Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link to="/clients">
-            <Card className="bg-gradient-to-br from-primary/5 via-primary/2 to-transparent border-primary/20 hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="bg-gradient-to-br from-indigo-50 via-indigo-50/50 to-transparent border-indigo-200 dark:from-indigo-950/30 dark:via-indigo-950/10 dark:border-indigo-900 hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-primary">
+                <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-400">
                   Total de Clientes
                 </CardTitle>
-                <Users className="h-4 w-4 text-primary" />
+                <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-500" />
               </CardHeader>
               <CardContent>
                 {metrics.loading ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-primary">{metrics.totalClients}</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-indigo-700 dark:text-indigo-400">{metrics.totalClients}</div>
                 )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   <TrendingUp className="h-3 w-3" />
@@ -65,18 +65,18 @@ const Index = () => {
           </Link>
 
           <Link to="/projects">
-            <Card className="bg-gradient-to-br from-accent/5 via-accent/2 to-transparent border-accent/20 hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="bg-gradient-to-br from-fuchsia-50 via-fuchsia-50/50 to-transparent border-fuchsia-200 dark:from-fuchsia-950/30 dark:via-fuchsia-950/10 dark:border-fuchsia-900 hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-accent">
+                <CardTitle className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">
                   Projetos Ativos
                 </CardTitle>
-                <FolderOpen className="h-4 w-4 text-accent" />
+                <FolderOpen className="h-4 w-4 text-fuchsia-600 dark:text-fuchsia-500" />
               </CardHeader>
               <CardContent>
                 {metrics.loading ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-accent">{metrics.activeProjects}</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-fuchsia-700 dark:text-fuchsia-400">{metrics.activeProjects}</div>
                 )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   <Activity className="h-3 w-3" />
@@ -87,18 +87,18 @@ const Index = () => {
           </Link>
 
           <Link to="/meetings">
-            <Card className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border-blue-500/20 hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="bg-gradient-to-br from-sky-50 via-sky-50/50 to-transparent border-sky-200 dark:from-sky-950/30 dark:via-sky-950/10 dark:border-sky-900 hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                <CardTitle className="text-sm font-medium text-sky-700 dark:text-sky-400">
                   Reuniões Hoje
                 </CardTitle>
-                <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Calendar className="h-4 w-4 text-sky-600 dark:text-sky-500" />
               </CardHeader>
               <CardContent>
                 {metrics.loading ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{metrics.meetingsToday}</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-sky-700 dark:text-sky-400">{metrics.meetingsToday}</div>
                 )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   <Clock className="h-3 w-3" />
@@ -108,18 +108,18 @@ const Index = () => {
             </Card>
           </Link>
 
-          <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/20">
+          <Card className="bg-gradient-to-br from-emerald-50 via-emerald-50/50 to-transparent border-emerald-200 dark:from-emerald-950/30 dark:via-emerald-950/10 dark:border-emerald-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-success-foreground">
+              <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
                 Taxa de Conclusão
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
+              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
             </CardHeader>
             <CardContent>
               {metrics.loading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-3xl font-bold text-success-foreground">{metrics.completionRate}%</div>
+                <div className="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">{metrics.completionRate}%</div>
               )}
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3" />
@@ -130,20 +130,20 @@ const Index = () => {
 
           <Card className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow ${
             metrics.overdueTasks > 0
-              ? 'from-destructive/10 via-destructive/5 to-transparent border-destructive/30'
-              : 'from-muted/5 via-muted/2 to-transparent border-muted/20'
+              ? 'from-red-50 via-red-50/50 to-transparent border-red-200 dark:from-red-950/30 dark:via-red-950/10 dark:border-red-900'
+              : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
           }`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${metrics.overdueTasks > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              <CardTitle className={`text-sm font-medium ${metrics.overdueTasks > 0 ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                 Tarefas Atrasadas
               </CardTitle>
-              <AlertTriangle className={`h-4 w-4 ${metrics.overdueTasks > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+              <AlertTriangle className={`h-4 w-4 ${metrics.overdueTasks > 0 ? 'text-red-600 dark:text-red-500' : 'text-slate-500 dark:text-slate-400'}`} />
             </CardHeader>
             <CardContent>
               {metrics.loading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className={`text-3xl font-bold ${metrics.overdueTasks > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <div className={`text-3xl font-extrabold tracking-tight ${metrics.overdueTasks > 0 ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                   {metrics.overdueTasks}
                 </div>
               )}
@@ -156,20 +156,20 @@ const Index = () => {
 
           <Card className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow ${
             metrics.projectsNearDeadline > 0
-              ? 'from-orange-500/10 via-orange-500/5 to-transparent border-orange-500/30'
-              : 'from-muted/5 via-muted/2 to-transparent border-muted/20'
+              ? 'from-amber-50 via-amber-50/50 to-transparent border-amber-200 dark:from-amber-950/30 dark:via-amber-950/10 dark:border-amber-900'
+              : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
           }`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${metrics.projectsNearDeadline > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>
+              <CardTitle className={`text-sm font-medium ${metrics.projectsNearDeadline > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400'}`}>
                 Projetos Urgentes
               </CardTitle>
-              <Target className={`h-4 w-4 ${metrics.projectsNearDeadline > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+              <Target className={`h-4 w-4 ${metrics.projectsNearDeadline > 0 ? 'text-amber-600 dark:text-amber-500' : 'text-slate-500 dark:text-slate-400'}`} />
             </CardHeader>
             <CardContent>
               {metrics.loading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className={`text-3xl font-bold ${metrics.projectsNearDeadline > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>
+                <div className={`text-3xl font-extrabold tracking-tight ${metrics.projectsNearDeadline > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400'}`}>
                   {metrics.projectsNearDeadline}
                 </div>
               )}
@@ -180,18 +180,18 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/20 hover:shadow-md transition-shadow">
+          <Card className="bg-gradient-to-br from-violet-50 via-violet-50/50 to-transparent border-violet-200 dark:from-violet-950/30 dark:via-violet-950/10 dark:border-violet-900 hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-600 dark:text-purple-400">
+              <CardTitle className="text-sm font-medium text-violet-700 dark:text-violet-400">
                 Minhas Tarefas
               </CardTitle>
-              <ListTodo className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <ListTodo className="h-4 w-4 text-violet-600 dark:text-violet-500" />
             </CardHeader>
             <CardContent>
               {metrics.loading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{metrics.myPendingTasks}</div>
+                <div className="text-3xl font-extrabold tracking-tight text-violet-700 dark:text-violet-400">{metrics.myPendingTasks}</div>
               )}
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <ListTodo className="h-3 w-3" />

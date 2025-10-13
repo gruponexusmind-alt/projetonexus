@@ -25,12 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Info, ListChecks, X, Plus } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -60,11 +62,19 @@ interface User {
   nome: string;
 }
 
+interface ChecklistItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export function CreateTaskModal({ projectId, companyId, onTaskCreated, children }: CreateTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [stages, setStages] = useState<any[]>([]);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState('');
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -114,7 +124,8 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
     try {
-      const { error } = await supabase
+      // 1. Criar a tarefa
+      const { data: taskData, error: taskError } = await supabase
         .from('gp_tasks')
         .insert({
           project_id: projectId,
@@ -127,9 +138,30 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
           estimated_hours: values.estimated_hours ? parseInt(values.estimated_hours) : null,
           assigned_to: values.assigned_to || null,
           stage_id: values.stage_id || null,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (taskError) throw taskError;
+
+      // 2. Criar itens do checklist se houver
+      if (checklistItems.length > 0 && taskData) {
+        const checklistInserts = checklistItems.map((item, index) => ({
+          task_id: taskData.id,
+          company_id: companyId,
+          title: item.title,
+          completed: item.completed,
+          order_index: index,
+        }));
+
+        const { error: checklistError } = await supabase
+          .from('gp_task_checklist_items')
+          .insert(checklistInserts);
+
+        if (checklistError) {
+          console.error('Erro ao criar checklist:', checklistError);
+        }
+      }
 
       toast({
         title: 'Tarefa criada!',
@@ -137,6 +169,8 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       });
 
       form.reset();
+      setChecklistItems([]);
+      setNewChecklistItem('');
       setOpen(false);
       onTaskCreated?.();
     } catch (error) {
@@ -151,6 +185,29 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
     }
   };
 
+  const addChecklistItem = () => {
+    if (!newChecklistItem.trim()) return;
+
+    const newItem: ChecklistItem = {
+      id: crypto.randomUUID(),
+      title: newChecklistItem.trim(),
+      completed: false,
+    };
+
+    setChecklistItems([...checklistItems, newItem]);
+    setNewChecklistItem('');
+  };
+
+  const removeChecklistItem = (id: string) => {
+    setChecklistItems(checklistItems.filter(item => item.id !== id));
+  };
+
+  const toggleChecklistItem = (id: string) => {
+    setChecklistItems(checklistItems.map(item =>
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
+  };
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       setOpen(newOpen);
@@ -162,7 +219,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Tarefa</DialogTitle>
           <DialogDescription>
@@ -170,8 +227,21 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Tabs defaultValue="info" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="info" className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Informações
+            </TabsTrigger>
+            <TabsTrigger value="checklist" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              Checklist {checklistItems.length > 0 && `(${checklistItems.length})`}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -363,16 +433,76 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
               />
             </div>
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Criando...' : 'Criar Tarefa'}
-              </Button>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Criando...' : 'Criar Tarefa'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </TabsContent>
+
+          <TabsContent value="checklist" className="space-y-4">
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Adicionar item do checklist..."
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addChecklistItem();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={addChecklistItem} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {checklistItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ListChecks className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhum item adicionado ainda</p>
+                  <p className="text-xs mt-1">Adicione itens de checklist acima</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {checklistItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={item.completed}
+                        onCheckedChange={() => toggleChecklistItem(item.id)}
+                      />
+                      <span className={`flex-1 ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
+                        {item.title}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeChecklistItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-4 text-xs text-muted-foreground">
+                <p>💡 Dica: Os itens do checklist serão criados quando você salvar a tarefa</p>
+              </div>
             </div>
-          </form>
-        </Form>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import ClientDashboard from "./pages/ClientDashboard";
 import ClientProjectDetail from "./pages/ClientProjectDetail";
 import ClientInvite from "./pages/ClientInvite";
+import PublicProjectView from "./pages/PublicProjectView";
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
@@ -50,7 +51,10 @@ const App = () => {
             <Routes>
               <Route path="/auth" element={<Auth />} />
 
-              {/* Client Routes - Public invitation */}
+              {/* Public Project View - No authentication required */}
+              <Route path="/project/view/:token" element={<PublicProjectView />} />
+
+              {/* Client Routes - Public invitation (deprecated, kept for backwards compatibility) */}
               <Route path="/client/invite/:token" element={<ClientInvite />} />
 
               {/* Client Routes - Protected */}

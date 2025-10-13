@@ -28,10 +28,9 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
     sendEmail: true,
   });
 
-  const generateInviteToken = (clientId: string, email: string) => {
-    // Criar um token JWT simples (em produção, usar uma biblioteca JWT adequada)
+  const generateViewToken = (email: string) => {
+    // Token para acesso temporário ao projeto (somente leitura)
     const payload = {
-      client_id: clientId,
       project_id: projectId,
       email: email,
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 dias
@@ -68,65 +67,41 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
     try {
       setLoading(true);
 
-      // 1. Buscar ou criar cliente
-      let clientId: string;
+      // 1. Gerar link de visualização temporário (somente leitura, 7 dias)
+      const token = generateViewToken(formData.clientEmail);
+      const baseUrl = window.location.origin;
+      const link = `${baseUrl}/project/view/${token}`;
+      setInviteLink(link);
 
-      // Verificar se cliente já existe
+      // 2. Opcional: Registrar cliente na tabela para histórico interno
       const { data: existingClient } = await supabase
         .from('gp_clients')
         .select('id')
         .eq('email', formData.clientEmail)
         .single();
 
-      if (existingClient) {
-        clientId = existingClient.id;
-      } else {
-        // Criar novo cliente
-        const { data: newClient, error: clientError } = await supabase
+      if (!existingClient) {
+        await supabase
           .from('gp_clients')
           .insert({
             name: formData.clientName,
             email: formData.clientEmail,
             contact_person: formData.clientName,
-          })
-          .select('id')
-          .single();
-
-        if (clientError) throw clientError;
-        clientId = newClient.id;
+          });
       }
 
-      // 2. Criar ou atualizar acesso do cliente ao projeto
-      const { error: accessError } = await supabase
-        .from('gp_project_client_access')
-        .upsert({
-          project_id: projectId,
-          client_id: clientId,
-          granted_by: profile?.id,
-        }, {
-          onConflict: 'project_id,client_id',
-        });
-
-      if (accessError) throw accessError;
-
-      // 3. Gerar link de convite
-      const token = generateInviteToken(clientId, formData.clientEmail);
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/client/invite/${token}`;
-      setInviteLink(link);
-
-      // 4. Se marcou para enviar email, poderia chamar uma Edge Function aqui
+      // 3. Se marcou para enviar email, poderia chamar uma Edge Function aqui
       // Por enquanto, apenas mostramos o link
 
       toast({
-        title: 'Sucesso',
-        description: 'Convite gerado com sucesso!',
+        title: 'Link Gerado!',
+        description: 'Link de visualização criado com sucesso.',
       });
     } catch (error) {
       console.error('Error sharing project:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível compartilhar o projeto',
+        description: 'Não foi possível gerar o link',
         variant: 'destructive',
       });
     } finally {
@@ -235,30 +210,35 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg bg-green-50 p-4 text-center">
+            <div className="rounded-lg bg-green-50 p-4 text-center dark:bg-green-950/30">
               <CheckCircle2 className="mx-auto mb-2 h-12 w-12 text-green-500" />
-              <h3 className="font-semibold text-green-900">Convite Gerado!</h3>
-              <p className="mt-1 text-sm text-green-700">
-                Compartilhe este link com o cliente para que ele possa criar sua conta
+              <h3 className="font-semibold text-green-900 dark:text-green-400">Link Gerado!</h3>
+              <p className="mt-1 text-sm text-green-700 dark:text-green-500">
+                Compartilhe este link com o cliente para visualização do projeto
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Link de Convite</Label>
+              <Label>Link de Visualização</Label>
               <div className="flex gap-2">
                 <Input value={inviteLink} readOnly className="font-mono text-xs" />
                 <Button onClick={copyToClipboard} size="sm" variant="outline">
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Este link é válido por 7 dias
-              </p>
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-3 mt-2">
+                <p className="text-xs text-amber-900 dark:text-amber-400 font-medium">
+                  ⏱️ Este link expira em 7 dias
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
+                  O cliente deverá informar o email <strong>{formData.clientEmail}</strong> para acessar
+                </p>
+              </div>
             </div>
 
             {formData.sendEmail && (
-              <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
-                📧 Um e-mail de convite será enviado para {formData.clientEmail}
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-900 dark:text-blue-400">
+                📧 Um e-mail será enviado para {formData.clientEmail}
               </div>
             )}
 

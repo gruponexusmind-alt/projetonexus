@@ -7,25 +7,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Users, 
-  UserPlus, 
-  Mail, 
-  Shield, 
-  MoreHorizontal, 
-  Edit, 
-  UserX, 
+import {
+  Users,
+  UserPlus,
+  Mail,
+  Shield,
+  MoreHorizontal,
+  Edit,
+  UserX,
   RefreshCw,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Key
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
@@ -57,6 +58,10 @@ export function UsersAccessTab() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', password: '', role: 'operacional' });
   const [inviting, setInviting] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -181,6 +186,59 @@ export function UsersAccessTab() {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleResetPassword = async () => {
+    if (!selectedUser) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter no mínimo 6 caracteres',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: {
+          user_id: selectedUser.user_id,
+          new_password: newPassword,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: 'Senha Resetada',
+        description: `A senha de ${selectedUser.nome} foi alterada com sucesso. Nova senha: ${newPassword}`,
+      });
+
+      setResetPasswordOpen(false);
+      setNewPassword('');
+      setSelectedUser(null);
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao resetar senha',
+        variant: 'destructive',
+      });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const openResetPasswordDialog = (user: UserProfile) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setResetPasswordOpen(true);
   };
 
   if (loading) {
@@ -328,12 +386,19 @@ export function UsersAccessTab() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => handleChangeUserRole(
-                        user.id, 
+                        user.id,
                         user.role === 'admin' ? 'operacional' : 'admin'
                       )}
                     >
                       <Shield className="h-4 w-4 mr-2" />
                       Alterar para {user.role === 'admin' ? 'Operacional' : 'Admin'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => openResetPasswordDialog(user)}
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Resetar Senha
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -416,6 +481,64 @@ export function UsersAccessTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Resetar Senha
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-4">
+                <p className="text-sm">
+                  <span className="font-medium">Usuário:</span> {selectedUser.nome}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedUser.email}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nova Senha</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  minLength={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Esta senha será definida para o usuário. Certifique-se de copiá-la e enviá-la ao usuário de forma segura.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setResetPasswordOpen(false);
+                    setNewPassword('');
+                    setSelectedUser(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={resettingPassword || newPassword.length < 6}
+                  className="flex items-center gap-2"
+                >
+                  <Key className="h-4 w-4" />
+                  {resettingPassword ? 'Resetando...' : 'Resetar Senha'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -67,7 +67,6 @@ export function TaskChecklistEditor({ taskId, companyId, onUpdate }: TaskCheckli
 
       setNewItemTitle('');
       await fetchChecklist();
-      onUpdate?.();
 
       toast({
         title: 'Sucesso',
@@ -99,7 +98,6 @@ export function TaskChecklistEditor({ taskId, companyId, onUpdate }: TaskCheckli
           item.id === itemId ? { ...item, is_done: isDone } : item
         )
       );
-      onUpdate?.();
     } catch (error) {
       console.error('Erro ao atualizar item:', error);
       toast({

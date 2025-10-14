@@ -44,6 +44,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['low', 'medium', 'high']),
   status: z.enum(['pending', 'in_progress', 'review', 'completed']),
+  start_date: z.date().optional(),
   due_date: z.date().optional(),
   estimated_hours: z.string().optional(),
   assigned_to: z.string().optional(),
@@ -84,6 +85,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       description: '',
       priority: 'medium',
       status: 'pending',
+      start_date: new Date(),
       estimated_hours: '',
       assigned_to: '',
       stage_id: '',
@@ -125,7 +127,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
     setLoading(true);
     try {
       // 1. Criar a tarefa
-      const { data: taskData, error: taskError } = await supabase
+      const { data: taskData, error: taskError} = await supabase
         .from('gp_tasks')
         .insert({
           project_id: projectId,
@@ -134,6 +136,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
           description: values.description,
           priority: values.priority,
           status: values.status,
+          start_date: values.start_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
           due_date: values.due_date?.toISOString().split('T')[0],
           estimated_hours: values.estimated_hours ? parseInt(values.estimated_hours) : null,
           assigned_to: values.assigned_to || null,
@@ -369,6 +372,45 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
 
               <FormField
                 control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Início</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: ptBR })
+                            ) : (
+                              <span>Selecionar data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="due_date"
                 render={({ field }) => (
                   <FormItem>
@@ -397,7 +439,10 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => {
+                            const startDate = form.getValues('start_date');
+                            return startDate && date < startDate;
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -406,32 +451,32 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="stage_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Etapa (opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma etapa" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {stages.map((stage) => (
-                          <SelectItem key={stage.id} value={stage.id}>
-                            {stage.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="stage_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Etapa (opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma etapa" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {stages.map((stage) => (
+                        <SelectItem key={stage.id} value={stage.id}>
+                          {stage.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>

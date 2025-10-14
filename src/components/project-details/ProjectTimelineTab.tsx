@@ -139,16 +139,27 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
   // Calculate chart dimensions and scale
   const chartHeight = Math.max(400, filteredTasks.length * 60);
   const today = new Date();
-  const earliestDate = filteredTasks.length > 0 
-    ? new Date(Math.min(...filteredTasks.map(t => new Date(t.start_date).getTime())))
+
+  // Filter tasks with valid dates
+  const tasksWithDates = filteredTasks.filter(t => t.start_date && (t.due_date || t.duration_days));
+
+  const earliestDate = tasksWithDates.length > 0
+    ? new Date(Math.min(...tasksWithDates.map(t => new Date(t.start_date).getTime())))
     : today;
-  const latestDate = filteredTasks.length > 0
-    ? new Date(Math.max(...filteredTasks.map(t => 
-        new Date(t.due_date || t.start_date).getTime()
-      )))
+  const latestDate = tasksWithDates.length > 0
+    ? new Date(Math.max(...tasksWithDates.map(t => {
+        const start = new Date(t.start_date);
+        if (t.due_date) {
+          return new Date(t.due_date).getTime();
+        }
+        // Fallback: add duration to start_date
+        const fallbackEnd = new Date(start);
+        fallbackEnd.setDate(fallbackEnd.getDate() + (t.duration_days || 1));
+        return fallbackEnd.getTime();
+      })))
     : today;
 
-  const totalDays = Math.ceil((latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const totalDays = Math.max(7, Math.ceil((latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   const dayWidth = Math.max(20, Math.min(40, 800 / totalDays));
 
   if (loading) {
@@ -257,6 +268,12 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
               <Calendar className="h-5 w-5" />
               Cronograma Gantt
             </CardTitle>
+            {filteredTasks.length !== tasksWithDates.length && (
+              <div className="text-sm text-amber-600 mt-2 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {filteredTasks.length - tasksWithDates.length} tarefa(s) sem datas definidas não aparecem no cronograma
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -294,11 +311,17 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
 
                 {/* Tasks with Gantt bars */}
                 <div className="space-y-2">
-                  {filteredTasks.map((task, index) => {
+                  {tasksWithDates.map((task, index) => {
                     const startDate = new Date(task.start_date);
-                    const endDate = new Date(task.due_date || task.start_date);
+                    const endDate = task.due_date
+                      ? new Date(task.due_date)
+                      : (() => {
+                          const end = new Date(startDate);
+                          end.setDate(end.getDate() + (task.duration_days || 1) - 1);
+                          return end;
+                        })();
                     const startOffset = Math.max(0, Math.ceil((startDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)));
-                    const duration = Math.max(1, task.duration_days);
+                    const duration = Math.max(1, task.duration_days || 1);
 
                     return (
                       <div key={task.task_id} className="flex items-center">

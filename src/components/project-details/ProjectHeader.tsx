@@ -9,6 +9,7 @@ import { DocumentDetailsModal } from '@/components/DocumentDetailsModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { ManageStagesModal } from '@/components/ManageStagesModal';
 import { ShareProjectModal } from '@/components/ShareProjectModal';
+import { ExportProjectPDFButton } from '@/components/ExportProjectPDFButton';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
@@ -217,6 +218,12 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
               Compartilhar
             </Button>
           </ShareProjectModal>
+          <ExportProjectPDFButton
+            projectId={project.id}
+            companyId={project.company_id}
+            variant="outline"
+            size="sm"
+          />
         </div>
       </div>
 

@@ -34,6 +34,7 @@ interface Task {
   description?: string;
   status: 'pending' | 'in_progress' | 'review' | 'completed';
   priority: 'low' | 'medium' | 'high';
+  start_date?: string;
   due_date?: string;
   estimated_hours?: number;
   assigned_to?: string;
@@ -64,6 +65,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
     status: task.status,
     priority: task.priority,
     estimated_hours: task.estimated_hours || '',
+    start_date: task.start_date ? new Date(task.start_date) : undefined,
     due_date: task.due_date ? new Date(task.due_date) : undefined,
     assigned_to: task.assigned_to || 'unassigned',
     stage_id: task.stage_id || ''
@@ -145,6 +147,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           status: validatedData.status,
           priority: validatedData.priority,
           estimated_hours: validatedData.estimated_hours || null,
+          start_date: formData.start_date ? formData.start_date.toISOString().split('T')[0] : null,
           due_date: validatedData.due_date ? validatedData.due_date.toISOString().split('T')[0] : null,
           assigned_to: formData.assigned_to === 'unassigned' ? null : formData.assigned_to,
           stage_id: formData.stage_id || null,
@@ -322,32 +325,64 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
             </div>
           </div>
 
-          {/* Data de Vencimento */}
-          <div className="space-y-2">
-            <Label>Data de Vencimento</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.due_date 
-                    ? format(formData.due_date, "PPP", { locale: ptBR })
-                    : "Selecionar data"
-                  }
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.due_date}
-                  onSelect={(date) => handleChange('due_date', date)}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+          {/* Datas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Data de Início */}
+            <div className="space-y-2">
+              <Label>Data de Início</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.start_date
+                      ? format(formData.start_date, "PPP", { locale: ptBR })
+                      : "Selecionar data"
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.start_date}
+                    onSelect={(date) => handleChange('start_date', date)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Data de Vencimento */}
+            <div className="space-y-2">
+              <Label>Data de Vencimento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.due_date
+                      ? format(formData.due_date, "PPP", { locale: ptBR })
+                      : "Selecionar data"
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.due_date}
+                    onSelect={(date) => handleChange('due_date', date)}
+                    disabled={(date) => formData.start_date && date < formData.start_date}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Labels */}

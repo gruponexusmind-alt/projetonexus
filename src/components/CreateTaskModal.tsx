@@ -153,12 +153,12 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
           task_id: taskData.id,
           company_id: companyId,
           title: item.title,
-          completed: item.completed,
-          order_index: index,
+          is_done: item.completed,
+          position: index,
         }));
 
         const { error: checklistError } = await supabase
-          .from('gp_task_checklist_items')
+          .from('gp_task_checklist')
           .insert(checklistInserts);
 
         if (checklistError) {

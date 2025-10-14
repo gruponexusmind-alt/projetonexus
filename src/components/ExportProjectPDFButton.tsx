@@ -84,7 +84,7 @@ export function ExportProjectPDFButton({
         // Documents
         supabase
           .from('gp_documents')
-          .select('name, file_type, created_at')
+          .select('title, file_type, created_at')
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -92,6 +92,23 @@ export function ExportProjectPDFButton({
 
       if (projectRes.error) throw projectRes.error;
       if (!projectRes.data) throw new Error('Projeto não encontrado');
+
+      // Calculate task stats manually if view fails
+      let taskStats = statsRes.data;
+      if (statsRes.error || !statsRes.data) {
+        console.warn('Task stats view failed, calculating manually:', statsRes.error);
+        const tasks = tasksRes.data || [];
+        taskStats = {
+          total: tasks.length,
+          pending: tasks.filter(t => t.status === 'pending').length,
+          in_progress: tasks.filter(t => t.status === 'in_progress').length,
+          review: tasks.filter(t => t.status === 'review').length,
+          completed: tasks.filter(t => t.status === 'completed').length,
+          progress_score: tasks.length > 0
+            ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)
+            : 0,
+        };
+      }
 
       // Prepare data for PDF
       const exportData: ProjectExportData = {
@@ -106,7 +123,7 @@ export function ExportProjectPDFButton({
         tasks: tasksRes.data || [],
         stages: stagesRes.data || [],
         expectations: expectationsRes.data || [],
-        taskStats: statsRes.data || {
+        taskStats: taskStats || {
           total: 0,
           pending: 0,
           in_progress: 0,

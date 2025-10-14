@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, GripVertical, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, GripVertical, CheckCircle2, RotateCcw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +47,8 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [stageToDelete, setStageToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -131,22 +143,32 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
     }
   };
 
-  const deleteStage = async (stageId: string) => {
+  const confirmDelete = (stageId: string) => {
+    setStageToDelete(stageId);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteStage = async () => {
+    if (!stageToDelete) return;
+
     setLoading(true);
     try {
       const { error } = await supabase
         .from('gp_project_stages')
         .delete()
-        .eq('id', stageId);
+        .eq('id', stageToDelete);
 
       if (error) throw error;
 
       await fetchStages();
-      
+
       toast({
         title: 'Sucesso',
         description: 'Etapa removida com sucesso.',
       });
+
+      setDeleteDialogOpen(false);
+      setStageToDelete(null);
     } catch (error) {
       console.error('Erro ao remover etapa:', error);
       toast({
@@ -199,7 +221,7 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
     try {
       const { error } = await supabase
         .from('gp_project_stages')
-        .update({ 
+        .update({
           completed_at: new Date().toISOString(),
           is_current: false
         })
@@ -208,7 +230,7 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
       if (error) throw error;
 
       await fetchStages();
-      
+
       toast({
         title: 'Sucesso',
         description: 'Etapa marcada como concluída.',
@@ -218,6 +240,37 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
       toast({
         title: 'Erro',
         description: 'Não foi possível concluir a etapa.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reopenStage = async (stageId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('gp_project_stages')
+        .update({
+          completed_at: null,
+          is_current: false
+        })
+        .eq('id', stageId);
+
+      if (error) throw error;
+
+      await fetchStages();
+
+      toast({
+        title: 'Sucesso',
+        description: 'Etapa reaberta com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao reabrir etapa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível reabrir a etapa.',
         variant: 'destructive',
       });
     } finally {
@@ -350,49 +403,65 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        {!stage.completed_at && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {stage.completed_at ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => reopenStage(stage.id)}
+                            disabled={loading}
+                            className="h-8"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reabrir
+                          </Button>
+                        ) : (
                           <>
                             {!stage.is_current && (
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="outline"
                                 onClick={() => markAsCurrent(stage.id)}
                                 disabled={loading}
-                                title="Marcar como atual"
+                                className="h-8"
                               >
-                                <div className="h-3 w-3 rounded-full border-2 border-blue-500" />
+                                <div className="h-3 w-3 rounded-full border-2 border-blue-500 mr-1" />
+                                Definir como Atual
                               </Button>
                             )}
                             <Button
                               size="sm"
-                              variant="ghost"
+                              variant="outline"
                               onClick={() => markAsCompleted(stage.id)}
                               disabled={loading}
-                              title="Marcar como concluída"
+                              className="h-8 text-green-700 border-green-300 hover:bg-green-50"
                             >
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Concluir
                             </Button>
                           </>
                         )}
                         {editingId !== stage.id && (
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             onClick={() => startEdit(stage)}
                             disabled={loading}
+                            className="h-8"
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            Editar
                           </Button>
                         )}
                         <Button
                           size="sm"
-                          variant="ghost"
-                          onClick={() => deleteStage(stage.id)}
+                          variant="outline"
+                          onClick={() => confirmDelete(stage.id)}
                           disabled={loading}
-                          className="text-red-600 hover:text-red-700"
+                          className="h-8 text-red-600 border-red-300 hover:bg-red-50"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
                         </Button>
                       </div>
                     </div>
@@ -415,6 +484,33 @@ export function ManageStagesModal({ projectId, companyId, onStagesUpdated, child
           </div>
         </div>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta etapa? Esta ação não pode ser desfeita e todas as tarefas vinculadas a esta etapa ficarão sem etapa definida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setStageToDelete(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteStage}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={loading}
+            >
+              {loading ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

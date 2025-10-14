@@ -58,7 +58,7 @@ interface Meeting {
 }
 
 interface Document {
-  name: string;
+  title: string;
   file_type?: string;
   created_at: string;
 }
@@ -165,17 +165,26 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   doc.setTextColor(...TEXT_DARK);
 
   const infoData = [
-    ['Nome do Projeto', data.project.title],
+    ['Nome do Projeto', data.project.title || 'Sem título'],
     ['Descrição', data.project.description || 'Não informado'],
-    ['Status', translateStatus(data.project.status)],
-    ['Prioridade', translatePriority(data.project.priority)],
-    ['Progresso', `${data.project.progress}%`],
-    ['Orçamento', `R$ ${data.project.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
-    ['Data de Início', data.project.start_date ? format(new Date(data.project.start_date), 'dd/MM/yyyy') : 'Não definida'],
-    ['Prazo', data.project.deadline ? format(new Date(data.project.deadline), 'dd/MM/yyyy') : 'Não definido'],
-    ['Cliente', data.project.client.name],
-    ['Email do Cliente', data.project.client.email],
-    ['Telefone do Cliente', data.project.client.phone || 'Não informado'],
+    ['Status', translateStatus(data.project.status || 'pending')],
+    ['Prioridade', translatePriority(data.project.priority || 'medium')],
+    ['Progresso', `${data.project.progress || 0}%`],
+    ['Orçamento', data.project.budget
+      ? `R$ ${data.project.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      : 'Não informado'
+    ],
+    ['Data de Início', data.project.start_date
+      ? format(new Date(data.project.start_date), 'dd/MM/yyyy')
+      : 'Não definida'
+    ],
+    ['Prazo', data.project.deadline
+      ? format(new Date(data.project.deadline), 'dd/MM/yyyy')
+      : 'Não definido'
+    ],
+    ['Cliente', data.project.client?.name || 'Não informado'],
+    ['Email do Cliente', data.project.client?.email || 'Não informado'],
+    ['Telefone do Cliente', data.project.client?.phone || 'Não informado'],
   ];
 
   autoTable(doc, {
@@ -202,7 +211,7 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 5;
 
   const stagesData = data.stages.map((stage) => [
-    stage.name,
+    stage.name || 'Sem nome',
     stage.is_current ? '✓ Em andamento' : stage.completed_at ? '✓ Concluída' : 'Pendente',
     stage.completed_at ? format(new Date(stage.completed_at), 'dd/MM/yyyy') : '-',
   ]);
@@ -227,8 +236,8 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 5;
 
   const expectationsData = data.expectations.map((exp) => [
-    exp.title,
-    exp.description,
+    exp.title || 'Sem título',
+    exp.description || 'Sem descrição',
     exp.is_done ? '✓ Atendida' : 'Pendente',
   ]);
 
@@ -257,14 +266,16 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 10;
 
   const statsData = [
-    ['Total de Tarefas', data.taskStats.total.toString()],
-    ['Pendentes', data.taskStats.pending.toString()],
-    ['Em Progresso', data.taskStats.in_progress.toString()],
-    ['Em Revisão', data.taskStats.review.toString()],
-    ['Concluídas', data.taskStats.completed.toString()],
+    ['Total de Tarefas', (data.taskStats?.total || 0).toString()],
+    ['Pendentes', (data.taskStats?.pending || 0).toString()],
+    ['Em Progresso', (data.taskStats?.in_progress || 0).toString()],
+    ['Em Revisão', (data.taskStats?.review || 0).toString()],
+    ['Concluídas', (data.taskStats?.completed || 0).toString()],
     [
       'Taxa de Conclusão',
-      `${Math.round((data.taskStats.completed / data.taskStats.total) * 100)}%`,
+      data.taskStats && data.taskStats.total > 0
+        ? `${Math.round((data.taskStats.completed / data.taskStats.total) * 100)}%`
+        : '0%',
     ],
   ];
 
@@ -290,12 +301,12 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 5;
 
   const tasksData = data.tasks.map((task) => [
-    task.title,
-    translateStatus(task.status),
-    translatePriority(task.priority),
+    task.title || 'Sem título',
+    translateStatus(task.status || 'pending'),
+    translatePriority(task.priority || 'medium'),
     task.assignee?.nome || task.assigned_to || 'Não atribuído',
     task.due_date ? format(new Date(task.due_date), 'dd/MM/yyyy') : '-',
-    `${task.progress}%`,
+    `${task.progress || 0}%`,
     task.stage?.name || '-',
   ]);
 
@@ -329,8 +340,10 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 5;
 
   const meetingsData = data.meetings.map((meeting) => [
-    meeting.title,
-    format(new Date(meeting.meeting_date), 'dd/MM/yyyy HH:mm'),
+    meeting.title || 'Sem título',
+    meeting.meeting_date
+      ? format(new Date(meeting.meeting_date), 'dd/MM/yyyy HH:mm')
+      : 'Data não definida',
     meeting.notes || 'Sem anotações',
   ]);
 
@@ -359,9 +372,9 @@ export async function generateProjectPDF(data: ProjectExportData): Promise<void>
   yPosition += 5;
 
   const documentsData = data.documents.map((doc) => [
-    doc.name,
+    doc.title || 'Sem título',
     doc.file_type || 'N/A',
-    format(new Date(doc.created_at), 'dd/MM/yyyy'),
+    doc.created_at ? format(new Date(doc.created_at), 'dd/MM/yyyy') : 'N/A',
   ]);
 
   autoTable(doc, {

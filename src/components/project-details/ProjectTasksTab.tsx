@@ -45,6 +45,7 @@ interface Task {
   created_at: string;
   project_id: string;
   company_id: string;
+  order_index: number;
   labels?: Array<{ id: string; name: string; color: string; }>;
 }
 
@@ -328,7 +329,7 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
 
   const fetchTasks = async () => {
     try {
-      // Fetch tasks with labels
+      // Fetch tasks with labels, ordered by order_index then created_at
       const { data: tasksData, error: tasksError } = await supabase
         .from('gp_tasks')
         .select(`
@@ -338,6 +339,7 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
           )
         `)
         .eq('project_id', project.id)
+        .order('order_index', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (tasksError) throw tasksError;
@@ -515,19 +517,22 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
       }
     }
 
-    // Se o status mudou, atualizar
+    // CASO 1: Mudança de status (movimento entre colunas)
     if (newStatus && newStatus !== task.status) {
       // Atualização otimista
+      const tasksInNewColumn = tasks.filter(t => t.status === newStatus);
+      const newOrderIndex = tasksInNewColumn.length;
+
       setTasks(prev =>
         prev.map(t =>
-          t.id === taskId ? { ...t, status: newStatus! } : t
+          t.id === taskId ? { ...t, status: newStatus!, order_index: newOrderIndex } : t
         )
       );
 
       try {
         await supabase
           .from('gp_tasks')
-          .update({ status: newStatus })
+          .update({ status: newStatus, order_index: newOrderIndex })
           .eq('id', taskId);
 
         toast({
@@ -540,7 +545,7 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
         // Rollback em caso de erro
         setTasks(prev =>
           prev.map(t =>
-            t.id === taskId ? { ...t, status: task.status } : t
+            t.id === taskId ? { ...t, status: task.status, order_index: task.order_index } : t
           )
         );
 
@@ -550,6 +555,61 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
           description: 'Não foi possível atualizar o status.',
           variant: 'destructive',
         });
+      }
+    }
+    // CASO 2: Reordenação na mesma coluna
+    else if (active.id !== over.id) {
+      const overTask = tasks.find(t => t.id === overId);
+      if (overTask && overTask.status === task.status) {
+        // Reordenar tarefas na mesma coluna
+        const tasksInColumn = tasks.filter(t => t.status === task.status);
+        const oldIndex = tasksInColumn.findIndex(t => t.id === taskId);
+        const newIndex = tasksInColumn.findIndex(t => t.id === overId);
+
+        if (oldIndex === newIndex) return;
+
+        // Remover task da posição antiga e inserir na nova
+        const reorderedTasks = [...tasksInColumn];
+        const [movedTask] = reorderedTasks.splice(oldIndex, 1);
+        reorderedTasks.splice(newIndex, 0, movedTask);
+
+        // Atualizar order_index
+        const updatedTasks = reorderedTasks.map((t, index) => ({
+          ...t,
+          order_index: index
+        }));
+
+        // Atualização otimista
+        setTasks(prev => {
+          const otherTasks = prev.filter(t => t.status !== task.status);
+          return [...otherTasks, ...updatedTasks].sort((a, b) => a.order_index - b.order_index);
+        });
+
+        try {
+          // Atualizar order_index no banco para todas as tarefas afetadas
+          const updates = updatedTasks.map(t =>
+            supabase
+              .from('gp_tasks')
+              .update({ order_index: t.order_index })
+              .eq('id', t.id)
+          );
+
+          await Promise.all(updates);
+
+          toast({
+            title: 'Tarefa reordenada!',
+            description: 'A ordem foi atualizada com sucesso.',
+          });
+        } catch (error) {
+          console.error('Erro ao reordenar tarefas:', error);
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível reordenar as tarefas.',
+            variant: 'destructive',
+          });
+          // Recarregar para garantir consistência
+          fetchTasks();
+        }
       }
     }
   };

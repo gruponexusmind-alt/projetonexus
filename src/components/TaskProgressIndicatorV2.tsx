@@ -123,13 +123,15 @@ export function TaskProgressIndicatorV2({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge 
-                  variant={progressInfo.isManual ? "default" : "outline"}
-                  className="h-5 px-1.5 text-xs flex items-center gap-1"
-                >
-                  {getSourceIcon()}
-                  {getSourceLabel()}
-                </Badge>
+                <div className="inline-flex">
+                  <Badge
+                    variant={progressInfo.isManual ? "default" : "outline"}
+                    className="h-5 px-1.5 text-xs flex items-center gap-1"
+                  >
+                    {getSourceIcon()}
+                    {getSourceLabel()}
+                  </Badge>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{progressInfo.description}</p>

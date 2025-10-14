@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -218,6 +218,9 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
             <Edit className="h-5 w-5" />
             Editar Tarefa
           </DialogTitle>
+          <DialogDescription>
+            Atualize as informações da tarefa
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
@@ -398,12 +401,12 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           {/* Etapa do Projeto */}
           <div className="space-y-2">
             <Label>Etapa do Projeto</Label>
-            <Select value={formData.stage_id} onValueChange={(value) => handleChange('stage_id', value)}>
+            <Select value={formData.stage_id || undefined} onValueChange={(value) => handleChange('stage_id', value === 'none' ? null : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma etapa" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 {stages.map((stage) => (
                   <SelectItem key={stage.id} value={stage.id}>
                     {stage.name}

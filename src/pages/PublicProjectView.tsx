@@ -85,6 +85,12 @@ export default function PublicProjectView() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
 
+  // Calculate actual project progress based on tasks
+  const calculateProgress = (): number => {
+    if (!stats || stats.total === 0) return 0;
+    return Math.round((stats.completed / stats.total) * 100);
+  };
+
   const handleValidate = async () => {
     if (!email.trim()) {
       toast({
@@ -99,6 +105,9 @@ export default function PublicProjectView() {
     try {
       const { data, error } = await supabase.functions.invoke('validate-project-view', {
         body: { token, email: email.trim() },
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (error) throw error;
@@ -256,9 +265,9 @@ export default function PublicProjectView() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">Progresso do Projeto</span>
-              <span className="text-muted-foreground">{project.progress}%</span>
+              <span className="text-muted-foreground">{calculateProgress()}%</span>
             </div>
-            <Progress value={project.progress} className="h-3" />
+            <Progress value={calculateProgress()} className="h-3" />
           </div>
 
           {/* Key Metrics */}
@@ -287,7 +296,7 @@ export default function PublicProjectView() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Conclusão</p>
-                    <p className="text-lg font-semibold">{project.progress}%</p>
+                    <p className="text-lg font-semibold">{calculateProgress()}%</p>
                   </div>
                 </div>
               </CardContent>
@@ -339,15 +348,40 @@ export default function PublicProjectView() {
                       <div className="text-center p-4 border rounded-lg">
                         <p className="text-3xl font-bold text-emerald-600">{stats.completed}</p>
                         <p className="text-sm text-muted-foreground mt-1">Concluídas</p>
+                        <p className="text-xs text-emerald-600 font-medium mt-1">
+                          {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
+                        </p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
                         <p className="text-3xl font-bold text-sky-600">{stats.in_progress}</p>
                         <p className="text-sm text-muted-foreground mt-1">Em Andamento</p>
+                        <p className="text-xs text-sky-600 font-medium mt-1">
+                          {stats.total > 0 ? Math.round((stats.in_progress / stats.total) * 100) : 0}%
+                        </p>
                       </div>
                       <div className="text-center p-4 border rounded-lg">
                         <p className="text-3xl font-bold text-amber-600">{stats.pending}</p>
                         <p className="text-sm text-muted-foreground mt-1">Pendentes</p>
+                        <p className="text-xs text-amber-600 font-medium mt-1">
+                          {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%
+                        </p>
                       </div>
+                    </div>
+
+                    {/* Progress Summary */}
+                    <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-semibold mb-2">Resumo do Progresso</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.completed > 0 && stats.completed === stats.total
+                          ? '🎉 Todas as tarefas foram concluídas!'
+                          : stats.in_progress > 0
+                          ? `Atualmente trabalhando em ${stats.in_progress} tarefa${stats.in_progress > 1 ? 's' : ''}. `
+                          : stats.pending > 0
+                          ? `${stats.pending} tarefa${stats.pending > 1 ? 's' : ''} aguardando início. `
+                          : 'Nenhuma tarefa em andamento no momento.'}
+                        {stats.completed > 0 && stats.completed < stats.total &&
+                          ` ${stats.completed} de ${stats.total} tarefa${stats.total > 1 ? 's' : ''} já ${stats.completed > 1 ? 'foram concluídas' : 'foi concluída'}.`}
+                      </p>
                     </div>
                   </div>
                 ) : (

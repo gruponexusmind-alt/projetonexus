@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -13,9 +14,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔍 [validate-project-view] Request received');
     const { token, email } = await req.json();
 
+    console.log('📧 [validate-project-view] Email:', email ? 'present' : 'missing');
+    console.log('🔑 [validate-project-view] Token:', token ? 'present' : 'missing');
+
     if (!token) {
+      console.error('❌ [validate-project-view] Token missing');
       return new Response(
         JSON.stringify({ error: 'Token não fornecido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -23,6 +29,7 @@ serve(async (req) => {
     }
 
     if (!email) {
+      console.error('❌ [validate-project-view] Email missing');
       return new Response(
         JSON.stringify({ error: 'Email não fornecido' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -128,6 +135,10 @@ serve(async (req) => {
       .limit(10);
 
     // Retornar dados validados
+    console.log('✅ [validate-project-view] Access granted successfully');
+    console.log('📊 [validate-project-view] Stats:', statsData ? 'present' : 'null');
+    console.log('📝 [validate-project-view] Comments count:', commentsData?.length || 0);
+
     return new Response(
       JSON.stringify({
         valid: true,

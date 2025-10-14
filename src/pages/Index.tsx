@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { Building2, Users, FolderOpen, Calendar, TrendingUp, Activity, Clock, CheckCircle, AlertTriangle, ListTodo, Target, PieChart as PieChartIcon } from "lucide-react";
+import { Building2, Users, FolderOpen, Calendar, TrendingUp, Activity, Clock, CheckCircle, AlertTriangle, ListTodo, Target, PieChart as PieChartIcon, ShieldAlert, LockIcon, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,11 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { metrics, projectStats, recentActivity, myTasks, upcomingMeetings, tasksByStage } = useDashboardData();
+
+  // Funções de navegação com filtros
+  const navigateToTasksWithFilters = (filters: any) => {
+    navigate('/tasks', { state: { filters } });
+  };
 
   // Redirecionar clientes para o dashboard do cliente
   useEffect(() => {
@@ -40,7 +45,7 @@ const Index = () => {
       />
       <div className="p-6 space-y-8">
 
-        {/* Main Metrics Cards */}
+        {/* Main Metrics Cards - Linha 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link to="/clients">
             <Card className="bg-gradient-to-br from-indigo-50 via-indigo-50/50 to-transparent border-indigo-200 dark:from-indigo-950/30 dark:via-indigo-950/10 dark:border-indigo-900 hover:shadow-md transition-shadow cursor-pointer">
@@ -128,11 +133,14 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow ${
-            metrics.overdueTasks > 0
-              ? 'from-red-50 via-red-50/50 to-transparent border-red-200 dark:from-red-950/30 dark:via-red-950/10 dark:border-red-900'
-              : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
-          }`}>
+          <Card
+            className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow cursor-pointer ${
+              metrics.overdueTasks > 0
+                ? 'from-red-50 via-red-50/50 to-transparent border-red-200 dark:from-red-950/30 dark:via-red-950/10 dark:border-red-900'
+                : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
+            }`}
+            onClick={() => navigateToTasksWithFilters({ overdue: true, status: ['pending', 'in_progress', 'review'] })}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={`text-sm font-medium ${metrics.overdueTasks > 0 ? 'text-red-700 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                 Tarefas Atrasadas
@@ -180,7 +188,10 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-violet-50 via-violet-50/50 to-transparent border-violet-200 dark:from-violet-950/30 dark:via-violet-950/10 dark:border-violet-900 hover:shadow-md transition-shadow">
+          <Card
+            className="bg-gradient-to-br from-violet-50 via-violet-50/50 to-transparent border-violet-200 dark:from-violet-950/30 dark:via-violet-950/10 dark:border-violet-900 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigateToTasksWithFilters({ assignedTo: profile?.id, status: ['pending', 'in_progress', 'review'] })}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-violet-700 dark:text-violet-400">
                 Minhas Tarefas
@@ -196,6 +207,98 @@ const Index = () => {
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <ListTodo className="h-3 w-3" />
                 Atribuídas a mim
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Metrics Cards - Linha 2 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Card Tarefas Bloqueadas */}
+          <Card
+            className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow cursor-pointer ${
+              metrics.blockedTasks > 0
+                ? 'from-orange-50 via-orange-50/50 to-transparent border-orange-200 dark:from-orange-950/30 dark:via-orange-950/10 dark:border-orange-900'
+                : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
+            }`}
+            onClick={() => navigateToTasksWithFilters({ blocked: true, status: ['pending', 'in_progress', 'review'] })}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-medium ${metrics.blockedTasks > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                Tarefas Bloqueadas
+              </CardTitle>
+              <LockIcon className={`h-4 w-4 ${metrics.blockedTasks > 0 ? 'text-orange-600 dark:text-orange-500' : 'text-slate-500 dark:text-slate-400'}`} />
+            </CardHeader>
+            <CardContent>
+              {metrics.loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className={`text-3xl font-extrabold tracking-tight ${metrics.blockedTasks > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {metrics.blockedTasks}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <LockIcon className="h-3 w-3" />
+                {metrics.blockedTasks > 0 ? 'Requer desbloqueio' : 'Nada bloqueado'}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Card Riscos Ativos */}
+          <Card
+            className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow ${
+              metrics.activeRisks > 0
+                ? 'from-yellow-50 via-yellow-50/50 to-transparent border-yellow-200 dark:from-yellow-950/30 dark:via-yellow-950/10 dark:border-yellow-900'
+                : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
+            }`}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-medium ${metrics.activeRisks > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                Riscos Ativos
+              </CardTitle>
+              <ShieldAlert className={`h-4 w-4 ${metrics.activeRisks > 0 ? 'text-yellow-600 dark:text-yellow-500' : 'text-slate-500 dark:text-slate-400'}`} />
+            </CardHeader>
+            <CardContent>
+              {metrics.loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className={`text-3xl font-extrabold tracking-tight ${metrics.activeRisks > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {metrics.activeRisks}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <ShieldAlert className="h-3 w-3" />
+                {metrics.activeRisks > 0 ? 'Em monitoramento' : 'Nenhum risco'}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Card Tarefas do Cliente */}
+          <Card
+            className={`bg-gradient-to-br border-2 hover:shadow-md transition-shadow cursor-pointer ${
+              metrics.clientExecutionTasks > 0
+                ? 'from-cyan-50 via-cyan-50/50 to-transparent border-cyan-200 dark:from-cyan-950/30 dark:via-cyan-950/10 dark:border-cyan-900'
+                : 'from-slate-50 via-slate-50/50 to-transparent border-slate-200 dark:from-slate-950/30 dark:via-slate-950/10 dark:border-slate-900'
+            }`}
+            onClick={() => navigateToTasksWithFilters({ clientExecution: true, status: ['pending', 'in_progress', 'review'] })}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-medium ${metrics.clientExecutionTasks > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                Tarefas do Cliente
+              </CardTitle>
+              <UserCheck className={`h-4 w-4 ${metrics.clientExecutionTasks > 0 ? 'text-cyan-600 dark:text-cyan-500' : 'text-slate-500 dark:text-slate-400'}`} />
+            </CardHeader>
+            <CardContent>
+              {metrics.loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className={`text-3xl font-extrabold tracking-tight ${metrics.clientExecutionTasks > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {metrics.clientExecutionTasks}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                <UserCheck className="h-3 w-3" />
+                {metrics.clientExecutionTasks > 0 ? 'Aguardando cliente' : 'Nenhuma pendente'}
               </p>
             </CardContent>
           </Card>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -39,11 +40,14 @@ export interface TaskFiltersState {
   priority: string[];
   assignedTo: string;
   clientExecution: boolean;
+  overdue?: boolean;
+  blocked?: boolean;
 }
 
 export default function Tasks() {
   const { profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<TaskFiltersState>({
@@ -54,6 +58,14 @@ export default function Tasks() {
     assignedTo: '',
     clientExecution: false,
   });
+
+  // Aplicar filtros vindos da navegação
+  useEffect(() => {
+    if (location.state?.filters) {
+      console.log('🔍 [Tasks] Aplicando filtros da navegação:', location.state.filters);
+      setFilters(prev => ({ ...prev, ...location.state.filters }));
+    }
+  }, [location.state]);
 
   useEffect(() => {
     console.log('🔍 [Tasks] useEffect disparado', {
@@ -148,6 +160,20 @@ export default function Tasks() {
 
     // Client execution filter
     if (filters.clientExecution && !task.client_execution) {
+      return false;
+    }
+
+    // Overdue filter
+    if (filters.overdue) {
+      const now = new Date();
+      const dueDate = task.due_date ? new Date(task.due_date) : null;
+      if (!dueDate || dueDate >= now || task.status === 'completed') {
+        return false;
+      }
+    }
+
+    // Blocked filter
+    if (filters.blocked && !(task as any).blocked) {
       return false;
     }
 

@@ -10,6 +10,9 @@ interface DashboardMetrics {
   overdueTasks: number;
   projectsNearDeadline: number;
   myPendingTasks: number;
+  blockedTasks: number;
+  activeRisks: number;
+  clientExecutionTasks: number;
   loading: boolean;
 }
 
@@ -57,7 +60,7 @@ interface TasksByStage {
 }
 
 export function useDashboardData() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalClients: 0,
@@ -67,6 +70,9 @@ export function useDashboardData() {
     overdueTasks: 0,
     projectsNearDeadline: 0,
     myPendingTasks: 0,
+    blockedTasks: 0,
+    activeRisks: 0,
+    clientExecutionTasks: 0,
     loading: true,
   });
 
@@ -83,10 +89,10 @@ export function useDashboardData() {
   const [tasksByStage, setTasksByStage] = useState<TasksByStage[]>([]);
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       loadDashboardData();
     }
-  }, [user]);
+  }, [user, profile]);
 
   const loadDashboardData = async () => {
     try {
@@ -160,15 +166,42 @@ export function useDashboardData() {
         .gt('end_date', now)
         .neq('status', 'completed');
 
-      // Buscar minhas tarefas pendentes
-      const { count: myPendingTasksCount } = await supabase
+      // Buscar tarefas bloqueadas
+      const { count: blockedTasksCount } = await supabase
         .from('gp_tasks')
         .select('*', { count: 'exact', head: true })
-        .eq('assigned_to', user?.id)
+        .eq('blocked', true)
         .neq('status', 'completed');
 
+      // Buscar riscos ativos
+      const { count: activeRisksCount } = await supabase
+        .from('gp_project_risks')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['open', 'monitoring']);
+
+      // Buscar tarefas de execução do cliente
+      const { count: clientExecutionTasksCount } = await supabase
+        .from('gp_tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_execution', true)
+        .neq('status', 'completed');
+
+      // Buscar minhas tarefas pendentes
+      console.log('🔍 [Dashboard] Buscando tarefas para user:', profile?.id);
+      const { count: myPendingTasksCount, error: myTasksCountError } = await supabase
+        .from('gp_tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_to', profile?.id)
+        .neq('status', 'completed');
+
+      if (myTasksCountError) {
+        console.error('❌ [Dashboard] Erro ao contar minhas tarefas:', myTasksCountError);
+      } else {
+        console.log('✅ [Dashboard] Minhas tarefas pendentes:', myPendingTasksCount);
+      }
+
       // Buscar minhas tarefas (top 5 mais urgentes)
-      const { data: myTasksData } = await supabase
+      const { data: myTasksData, error: myTasksError } = await supabase
         .from('gp_tasks')
         .select(`
           id,
@@ -178,10 +211,16 @@ export function useDashboardData() {
           status,
           project:gp_projects(title)
         `)
-        .eq('assigned_to', user?.id)
+        .eq('assigned_to', profile?.id)
         .neq('status', 'completed')
         .order('due_date', { ascending: true, nullsFirst: false })
         .limit(5);
+
+      if (myTasksError) {
+        console.error('❌ [Dashboard] Erro ao buscar minhas tarefas:', myTasksError);
+      } else {
+        console.log('✅ [Dashboard] Minhas tarefas carregadas:', myTasksData?.length || 0);
+      }
 
       const formattedMyTasks: MyTask[] = (myTasksData || []).map((task: any) => ({
         id: task.id,
@@ -279,6 +318,9 @@ export function useDashboardData() {
         overdueTasks: overdueTasksCount || 0,
         projectsNearDeadline: projectsNearDeadlineCount || 0,
         myPendingTasks: myPendingTasksCount || 0,
+        blockedTasks: blockedTasksCount || 0,
+        activeRisks: activeRisksCount || 0,
+        clientExecutionTasks: clientExecutionTasksCount || 0,
         loading: false,
       });
 

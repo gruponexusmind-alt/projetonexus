@@ -317,6 +317,8 @@ export function ManageExpectationsModal({ projectId, companyId, onExpectationsUp
                             variant="ghost"
                             onClick={() => startEdit(expectation)}
                             disabled={loading}
+                            className="hover:bg-blue-50 hover:text-blue-600"
+                            title="Editar expectativa"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -325,7 +327,8 @@ export function ManageExpectationsModal({ projectId, companyId, onExpectationsUp
                             variant="ghost"
                             onClick={() => deleteExpectation(expectation.id)}
                             disabled={loading}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Excluir expectativa"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

@@ -320,7 +320,6 @@ export function ProjectMeetingsTab({ project, onRefresh }: ProjectMeetingsTabPro
           }
         }}
         projectId={project.id}
-        companyId={project.company_id || ''}
         meeting={editingMeeting}
         onMeetingCreated={() => {
           fetchMeetings();

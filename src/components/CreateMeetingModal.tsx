@@ -37,7 +37,7 @@ interface CreateMeetingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
-  companyId: string;
+  // companyId não é necessário - reuniões pertencem a projetos, não diretamente a empresas
   meeting?: Meeting | null;
   onMeetingCreated: () => void;
 }
@@ -46,7 +46,6 @@ export function CreateMeetingModal({
   open,
   onOpenChange,
   projectId,
-  companyId,
   meeting,
   onMeetingCreated,
 }: CreateMeetingModalProps) {
@@ -118,7 +117,7 @@ export function CreateMeetingModal({
 
       const meetingData = {
         project_id: projectId,
-        company_id: companyId,
+        // company_id não existe na tabela gp_meetings - pode ser obtido via project.company_id
         title: formData.title.trim(),
         description: formData.description.trim() || null,
         meeting_date: meetingDateTime.toISOString(),

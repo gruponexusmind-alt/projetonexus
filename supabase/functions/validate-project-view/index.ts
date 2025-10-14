@@ -15,46 +15,7 @@ serve(async (req) => {
 
   try {
     console.log('🔍 [validate-project-view] Request received');
-    console.log('📦 [validate-project-view] Request method:', req.method);
-    console.log('📦 [validate-project-view] Content-Type:', req.headers.get('content-type'));
-
-    // Tentar ler body de forma segura
-    let token, email;
-    try {
-      const text = await req.text();
-      console.log('📦 [validate-project-view] Raw body length:', text?.length || 0);
-      console.log('📦 [validate-project-view] Raw body preview:', text?.substring(0, 100));
-
-      if (!text || text.trim() === '') {
-        console.warn('⚠️ [validate-project-view] Body is empty, trying URL params');
-        // Fallback: tentar query parameters
-        const url = new URL(req.url);
-        token = url.searchParams.get('token');
-        email = url.searchParams.get('email');
-      } else {
-        // Parse JSON
-        const body = JSON.parse(text);
-        token = body.token;
-        email = body.email;
-      }
-    } catch (parseError) {
-      console.error('❌ [validate-project-view] JSON parse error:', parseError);
-      // Fallback final: tentar URL params
-      const url = new URL(req.url);
-      token = url.searchParams.get('token');
-      email = url.searchParams.get('email');
-
-      if (!token || !email) {
-        return new Response(
-          JSON.stringify({
-            error: 'Requisição inválida - body vazio ou malformado',
-            details: parseError.message,
-            hint: 'Certifique-se de enviar { "token": "...", "email": "..." } no body'
-          }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    const { token, email } = await req.json();
 
     console.log('📧 [validate-project-view] Email:', email ? 'present' : 'missing');
     console.log('🔑 [validate-project-view] Token:', token ? 'present' : 'missing');

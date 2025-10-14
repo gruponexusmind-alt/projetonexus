@@ -103,14 +103,32 @@ export default function PublicProjectView() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-project-view', {
-        body: { token, email: email.trim() },
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('🔍 [PublicProjectView] Sending validation request...');
+      console.log('📧 [PublicProjectView] Email:', email.trim());
+      console.log('🔑 [PublicProjectView] Token:', token?.substring(0, 20) + '...');
 
-      if (error) throw error;
+      // Usar fetch direto ao invés de supabase.functions.invoke para garantir que body seja enviado
+      const response = await fetch(
+        `https://lhowpzlclzmysprjnmfk.supabase.co/functions/v1/validate-project-view`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token, email: email.trim() }),
+        }
+      );
+
+      console.log('📡 [PublicProjectView] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+        console.error('❌ [PublicProjectView] Error response:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ [PublicProjectView] Data received:', data.valid ? 'valid' : 'invalid');
 
       if (!data || !data.valid) {
         toast({

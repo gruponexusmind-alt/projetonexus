@@ -24,13 +24,20 @@ interface Project {
   title: string;
 }
 
+interface User {
+  id: string;
+  nome: string;
+}
+
 export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFiltersProps) {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     console.log('🔍 [TaskFilters] useEffect disparado', { companyId });
     if (companyId) {
       fetchProjects();
+      fetchUsers();
     }
   }, [companyId]);
 
@@ -56,6 +63,29 @@ export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFilters
     if (data) setProjects(data);
   };
 
+  const fetchUsers = async () => {
+    if (!companyId) {
+      console.warn('⚠️ [TaskFilters] Sem companyId, abortando fetch');
+      return;
+    }
+
+    console.log('📡 [TaskFilters] Buscando usuários...');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, nome')
+      .eq('company_id', companyId)
+      .eq('ativo', true)
+      .order('nome');
+
+    if (error) {
+      console.error('❌ [TaskFilters] Erro ao buscar usuários:', error);
+      return;
+    }
+
+    console.log('✅ [TaskFilters] Usuários carregados:', data?.length || 0);
+    if (data) setUsers(data);
+  };
+
   const handleClearFilters = () => {
     onFiltersChange({
       search: '',
@@ -63,6 +93,7 @@ export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFilters
       status: [],
       priority: [],
       assignedTo: '',
+      clientExecution: false,
     });
   };
 
@@ -85,7 +116,8 @@ export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFilters
     filters.projectId ||
     filters.status.length > 0 ||
     filters.priority.length > 0 ||
-    filters.assignedTo;
+    filters.assignedTo ||
+    filters.clientExecution;
 
   return (
     <div className="space-y-4">
@@ -123,6 +155,23 @@ export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFilters
             {projects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
                 {project.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Assigned To Filter */}
+        <Select
+          value={filters.assignedTo || undefined}
+          onValueChange={(value) => onFiltersChange({ ...filters, assignedTo: value })}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Todos Responsáveis" />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.nome}
               </SelectItem>
             ))}
           </SelectContent>
@@ -182,6 +231,17 @@ export function TaskFilters({ filters, onFiltersChange, companyId }: TaskFilters
             onClick={() => togglePriority('low')}
           >
             Baixa
+          </Badge>
+        </div>
+
+        {/* Client Execution Filter */}
+        <div className="flex gap-2">
+          <Badge
+            variant={filters.clientExecution ? 'default' : 'outline'}
+            className="cursor-pointer text-blue-600 border-blue-300"
+            onClick={() => onFiltersChange({ ...filters, clientExecution: !filters.clientExecution })}
+          >
+            Cliente Executa
           </Badge>
         </div>
       </div>

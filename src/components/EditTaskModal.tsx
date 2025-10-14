@@ -41,6 +41,7 @@ interface Task {
   project_id: string;
   company_id: string;
   stage_id?: string;
+  client_execution?: boolean;
 }
 
 interface Label {
@@ -68,7 +69,8 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
     start_date: task.start_date ? new Date(task.start_date) : undefined,
     due_date: task.due_date ? new Date(task.due_date) : undefined,
     assigned_to: task.assigned_to || 'unassigned',
-    stage_id: task.stage_id || ''
+    stage_id: task.stage_id || '',
+    client_execution: task.client_execution || false
   });
   const [profiles, setProfiles] = useState<Array<{id: string, nome: string}>>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
@@ -151,6 +153,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           due_date: validatedData.due_date ? validatedData.due_date.toISOString().split('T')[0] : null,
           assigned_to: formData.assigned_to === 'unassigned' ? null : formData.assigned_to,
           stage_id: formData.stage_id || null,
+          client_execution: formData.client_execution,
           updated_at: new Date().toISOString()
         })
         .eq('id', task.id);
@@ -430,6 +433,23 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
                 Gerenciar Dependências
               </Button>
             </TaskDependenciesManager>
+          </div>
+
+          {/* Cliente Executa */}
+          <div className="flex items-center space-x-3 rounded-md border p-4">
+            <Checkbox
+              id="client_execution"
+              checked={formData.client_execution}
+              onCheckedChange={(checked) => handleChange('client_execution', checked)}
+            />
+            <div className="space-y-1 leading-none">
+              <Label htmlFor="client_execution" className="cursor-pointer">
+                Execução por parte do Cliente
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Marque se esta tarefa será executada pelo cliente
+              </p>
+            </div>
           </div>
 
           {/* Ações */}

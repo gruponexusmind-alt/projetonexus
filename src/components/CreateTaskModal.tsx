@@ -49,6 +49,7 @@ const formSchema = z.object({
   estimated_hours: z.string().optional(),
   assigned_to: z.string().optional(),
   stage_id: z.string().optional(),
+  client_execution: z.boolean().default(false),
 });
 
 interface CreateTaskModalProps {
@@ -89,6 +90,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       estimated_hours: '',
       assigned_to: '',
       stage_id: '',
+      client_execution: false,
     },
   });
 
@@ -141,6 +143,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
           estimated_hours: values.estimated_hours ? parseInt(values.estimated_hours) : null,
           assigned_to: values.assigned_to || null,
           stage_id: values.stage_id || null,
+          client_execution: values.client_execution,
         })
         .select()
         .single();
@@ -474,6 +477,29 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="client_execution"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="cursor-pointer">
+                      Execução por parte do Cliente
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Marque se esta tarefa será executada pelo cliente
+                    </p>
+                  </div>
                 </FormItem>
               )}
             />

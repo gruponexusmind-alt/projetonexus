@@ -46,7 +46,12 @@ interface Task {
   project_id: string;
   company_id: string;
   order_index: number;
+  client_execution: boolean;
   labels?: Array<{ id: string; name: string; color: string; }>;
+  assigned_user?: {
+    id: string;
+    nome: string;
+  };
 }
 
 interface ChecklistItem {
@@ -227,11 +232,18 @@ function SortableTaskCard({
           )}
         </div>
 
+        {/* Client Execution Badge */}
+        {task.client_execution && (
+          <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-50">
+            Cliente Executa
+          </Badge>
+        )}
+
         {/* Assignee */}
-        {task.assigned_to && (
+        {task.assigned_user && (
           <div className="flex items-center text-xs text-muted-foreground">
             <User className="h-3 w-3 mr-1" />
-            Responsável
+            {task.assigned_user.nome}
           </div>
         )}
 
@@ -329,14 +341,15 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
 
   const fetchTasks = async () => {
     try {
-      // Fetch tasks with labels, ordered by order_index then created_at
+      // Fetch tasks with labels and assigned user, ordered by order_index then created_at
       const { data: tasksData, error: tasksError } = await supabase
         .from('gp_tasks')
         .select(`
           *,
           labels:gp_task_labels(
             label:gp_labels(id, name, color)
-          )
+          ),
+          assigned_user:profiles!gp_tasks_assigned_to_fkey(id, nome)
         `)
         .eq('project_id', project.id)
         .order('order_index', { ascending: true, nullsFirst: false })

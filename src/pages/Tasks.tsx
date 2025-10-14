@@ -21,11 +21,13 @@ export interface Task {
   project_id: string;
   company_id: string;
   created_at: string;
+  client_execution: boolean;
   project?: {
     id: string;
     title: string;
   };
   assigned_user?: {
+    id: string;
     nome: string;
   };
 }
@@ -36,6 +38,7 @@ export interface TaskFiltersState {
   status: string[];
   priority: string[];
   assignedTo: string;
+  clientExecution: boolean;
 }
 
 export default function Tasks() {
@@ -49,6 +52,7 @@ export default function Tasks() {
     status: [],
     priority: [],
     assignedTo: '',
+    clientExecution: false,
   });
 
   useEffect(() => {
@@ -83,7 +87,8 @@ export default function Tasks() {
         .from('gp_tasks')
         .select(`
           *,
-          project:gp_projects(id, title)
+          project:gp_projects(id, title),
+          assigned_user:profiles!gp_tasks_assigned_to_fkey(id, nome)
         `)
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false });
@@ -138,6 +143,11 @@ export default function Tasks() {
 
     // Assigned to filter
     if (filters.assignedTo && task.assigned_to !== filters.assignedTo) {
+      return false;
+    }
+
+    // Client execution filter
+    if (filters.clientExecution && !task.client_execution) {
       return false;
     }
 

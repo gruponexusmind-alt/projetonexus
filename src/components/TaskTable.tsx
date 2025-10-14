@@ -146,7 +146,14 @@ export function TaskTable({ tasks, loading, onRefresh }: TaskTableProps) {
               <TableRow key={task.id} className="cursor-pointer hover:bg-muted/50">
                 <TableCell className="font-medium">
                   <div className="space-y-1">
-                    <div>{task.title}</div>
+                    <div className="flex items-center gap-2">
+                      <span>{task.title}</span>
+                      {task.client_execution && (
+                        <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-50">
+                          Cliente Executa
+                        </Badge>
+                      )}
+                    </div>
                     {task.description && (
                       <div className="text-sm text-muted-foreground line-clamp-1">
                         {task.description}

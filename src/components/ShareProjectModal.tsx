@@ -45,6 +45,27 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
     return token;
   };
 
+  const validateToken = (token: string): boolean => {
+    try {
+      // Tentar decodificar o token para validar
+      const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+      const decoded = JSON.parse(atob(padded));
+
+      console.log('🔍 [ShareProjectModal] Token generated and validated:', {
+        project_id: decoded.project_id,
+        email: decoded.email,
+        expires: new Date(decoded.exp).toISOString(),
+      });
+
+      // Verificar se tem campos obrigatórios
+      return !!decoded.project_id && !!decoded.email && !!decoded.exp;
+    } catch (e) {
+      console.error('❌ [ShareProjectModal] Invalid token generated:', e);
+      return false;
+    }
+  };
+
   const handleShare = async () => {
     if (!formData.clientEmail.trim()) {
       toast({
@@ -69,8 +90,16 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
 
       // 1. Gerar link de visualização temporário (somente leitura, 7 dias)
       const token = generateViewToken(formData.clientEmail);
+
+      // Validar token gerado
+      if (!validateToken(token)) {
+        throw new Error('Erro ao gerar token de acesso válido');
+      }
+
       const baseUrl = window.location.origin;
       const link = `${baseUrl}/project/view/${token}`;
+
+      console.log('✅ [ShareProjectModal] Link generated successfully:', link);
       setInviteLink(link);
 
       // 2. Opcional: Registrar cliente na tabela para histórico interno

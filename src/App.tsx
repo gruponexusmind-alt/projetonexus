@@ -8,20 +8,33 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/Layout/ProtectedRoute";
 import { AppSidebar } from "@/components/Layout/Sidebar";
-import Index from "./pages/Index";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
+
+// Eager load critical pages
 import Auth from "./pages/Auth";
-import Clients from "./pages/Clients";
-import Projects from "./pages/Projects";
-import ProjectDetails from "./pages/ProjectDetails";
-import Tasks from "./pages/Tasks";
-import TasksDebug from "./pages/TasksDebug";
-import Meetings from "./pages/Meetings";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import ClientDashboard from "./pages/ClientDashboard";
-import ClientProjectDetail from "./pages/ClientProjectDetail";
-import ClientInvite from "./pages/ClientInvite";
-import PublicProjectView from "./pages/PublicProjectView";
+
+// Lazy load non-critical pages for better initial load performance
+const Index = lazy(() => import("./pages/Index"));
+const Clients = lazy(() => import("./pages/Clients"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const TasksDebug = lazy(() => import("./pages/TasksDebug"));
+const Meetings = lazy(() => import("./pages/Meetings"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const ClientProjectDetail = lazy(() => import("./pages/ClientProjectDetail"));
+const ClientInvite = lazy(() => import("./pages/ClientInvite"));
+const PublicProjectView = lazy(() => import("./pages/PublicProjectView"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 // Create QueryClient with proper configuration
 const queryClient = new QueryClient({
@@ -48,6 +61,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
 
@@ -93,18 +107,21 @@ const App = () => {
                   </SidebarProvider>
                 </ProtectedRoute>
               } />
-              <Route path="/tasks-debug" element={
-                <ProtectedRoute allowedRoles={['admin', 'operacional']}>
-                  <SidebarProvider>
-                    <div className="flex min-h-screen w-full">
-                      <AppSidebar />
-                      <main className="flex-1">
-                        <TasksDebug />
-                      </main>
-                    </div>
-                  </SidebarProvider>
-                </ProtectedRoute>
-              } />
+              {/* Debug route - only available in development */}
+              {import.meta.env.DEV && (
+                <Route path="/tasks-debug" element={
+                  <ProtectedRoute allowedRoles={['admin', 'operacional']}>
+                    <SidebarProvider>
+                      <div className="flex min-h-screen w-full">
+                        <AppSidebar />
+                        <main className="flex-1">
+                          <TasksDebug />
+                        </main>
+                      </div>
+                    </SidebarProvider>
+                  </ProtectedRoute>
+                } />
+              )}
               <Route path="/tasks" element={
                 <ProtectedRoute allowedRoles={['admin', 'operacional']}>
                   <SidebarProvider>
@@ -168,6 +185,7 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

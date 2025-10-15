@@ -63,24 +63,42 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
     const taskEnd = parseISO(task.due_date);
 
     const startOffset = differenceInDays(taskStart, startDate);
-    const duration = differenceInDays(taskEnd, taskStart) + 1;
+    const duration = Math.max(differenceInDays(taskEnd, taskStart) + 1, 1);
 
-    if (startOffset < 0 || startOffset > totalDays) return null;
+    // Permitir tarefas parcialmente visíveis
+    // Se começa antes do período visível, ajustar para início visível
+    const visibleStart = Math.max(startOffset, 0);
+    const visibleEnd = Math.min(startOffset + duration, totalDays + 1);
+    const visibleDuration = Math.max(visibleEnd - visibleStart, 0.5);
+
+    // Só esconder se completamente fora do período
+    if (visibleDuration <= 0 || visibleEnd <= 0 || visibleStart > totalDays) return null;
 
     return {
-      left: `${(startOffset / totalDays) * 100}%`,
-      width: `${Math.max((duration / totalDays) * 100, 1)}%`,
+      left: `${(visibleStart / totalDays) * 100}%`,
+      width: `${Math.max((visibleDuration / totalDays) * 100, 1)}%`,
+      isPartial: startOffset < 0 || (startOffset + duration) > totalDays,
     };
   };
 
   const getStatusColor = (status: string) => {
     const colors = {
-      pending: 'bg-gray-400',
+      pending: 'bg-slate-400',
       in_progress: 'bg-blue-500',
-      review: 'bg-purple-500',
-      completed: 'bg-green-500',
+      review: 'bg-amber-500',
+      completed: 'bg-emerald-500',
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-400';
+    return colors[status as keyof typeof colors] || 'bg-slate-400';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      pending: 'Pendente',
+      in_progress: 'Em Andamento',
+      review: 'Em Revisão',
+      completed: 'Concluída',
+    };
+    return labels[status as keyof typeof labels] || status;
   };
 
   const getPriorityColor = (priority: string) => {
@@ -238,10 +256,7 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                           }
                           className="text-xs"
                         >
-                          {task.status === 'completed' ? 'Concluída' :
-                           task.status === 'in_progress' ? 'Em Progresso' :
-                           task.status === 'review' ? 'Revisão' :
-                           'Pendente'}
+                          {getStatusLabel(task.status)}
                         </Badge>
                       </div>
                     </div>

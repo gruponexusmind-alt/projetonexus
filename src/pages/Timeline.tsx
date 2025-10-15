@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTimelineData } from '@/hooks/useTimelineData';
 import { GanttChart } from '@/components/GanttChart';
+import { TimelineCards } from '@/components/TimelineCards';
 import { TaskDetailsModal } from '@/components/TaskDetailsModal';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,8 @@ import {
   FolderOpen,
   ChevronLeft,
   ChevronRight,
+  List,
+  BarChart3,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,6 +52,7 @@ export default function Timeline() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'cards' | 'gantt'>('cards');
 
   const stats = getTimelineStats();
 
@@ -371,7 +375,7 @@ export default function Timeline() {
         {/* Visualização */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -381,28 +385,62 @@ export default function Timeline() {
                   {tasks.length} tarefas agendadas no período selecionado
                 </CardDescription>
               </div>
-              <Select value={groupBy} onValueChange={(value: any) => setGroupBy(value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="project">Por Projeto</SelectItem>
-                  <SelectItem value="user">Por Responsável</SelectItem>
-                  <SelectItem value="none">Sem Agrupamento</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="flex items-center gap-3">
+                {/* Toggle View Mode */}
+                <div className="flex items-center gap-1 border rounded-md p-1">
+                  <Button
+                    variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('cards')}
+                    className="gap-2"
+                  >
+                    <List className="h-4 w-4" />
+                    Cards
+                  </Button>
+                  <Button
+                    variant={viewMode === 'gantt' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('gantt')}
+                    className="gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Gantt
+                  </Button>
+                </div>
+
+                {/* Group By */}
+                <Select value={groupBy} onValueChange={(value: any) => setGroupBy(value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="project">Por Projeto</SelectItem>
+                    <SelectItem value="user">Por Responsável</SelectItem>
+                    <SelectItem value="none">Sem Agrupamento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <GanttChart
+            {viewMode === 'cards' ? (
+              <TimelineCards
                 tasks={tasks}
-                startDate={filters.startDate}
-                endDate={filters.endDate}
                 groupBy={groupBy}
                 onTaskClick={handleTaskClick}
               />
-            </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <GanttChart
+                  tasks={tasks}
+                  startDate={filters.startDate}
+                  endDate={filters.endDate}
+                  groupBy={groupBy}
+                  onTaskClick={handleTaskClick}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

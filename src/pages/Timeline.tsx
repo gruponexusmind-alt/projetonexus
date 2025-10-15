@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTimelineData } from '@/hooks/useTimelineData';
 import { GanttChart } from '@/components/GanttChart';
+import { TaskDetailsModal } from '@/components/TaskDetailsModal';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -25,6 +26,8 @@ import {
   Filter,
   Users,
   FolderOpen,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,6 +47,8 @@ export default function Timeline() {
   const [groupBy, setGroupBy] = useState<'project' | 'user' | 'none'>('project');
   const [users, setUsers] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const stats = getTimelineStats();
 
@@ -86,10 +91,17 @@ export default function Timeline() {
     updateFilters({ userIds: newUsers });
   };
 
-  const setPeriod = (period: 'month' | 'quarter' | 'custom') => {
+  const setPeriod = (period: 'month' | 'quarter' | 'custom' | 'today') => {
     const now = new Date();
 
     switch (period) {
+      case 'today':
+        setCurrentDate(new Date());
+        updateFilters({
+          startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+          endDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        });
+        break;
       case 'month':
         updateFilters({
           startDate: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -105,6 +117,24 @@ export default function Timeline() {
         });
         break;
     }
+  };
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    if (direction === 'prev') {
+      newDate.setDate(newDate.getDate() - 1);
+    } else {
+      newDate.setDate(newDate.getDate() + 1);
+    }
+    setCurrentDate(newDate);
+    updateFilters({
+      startDate: new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate()),
+      endDate: new Date(newDate.getFullYear(), newDate.getMonth(), newDate.getDate()),
+    });
+  };
+
+  const handleTaskClick = (task: any) => {
+    setSelectedTask(task);
   };
 
   if (loading) {
@@ -139,6 +169,44 @@ export default function Timeline() {
       </PageHeader>
 
       <div className="p-6 space-y-6">
+        {/* Navegação de Data */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate('prev')}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="flex items-center gap-2 flex-1 justify-center">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="text-lg font-semibold">
+                  {format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate('next')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setPeriod('today')}
+              >
+                Hoje
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-violet-50 via-violet-50/50 to-transparent border-violet-200">
@@ -332,11 +400,22 @@ export default function Timeline() {
                 startDate={filters.startDate}
                 endDate={filters.endDate}
                 groupBy={groupBy}
+                onTaskClick={handleTaskClick}
               />
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          open={!!selectedTask}
+          onOpenChange={(open) => !open && setSelectedTask(null)}
+          onUpdate={refresh}
+        />
+      )}
     </div>
   );
 }

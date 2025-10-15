@@ -104,58 +104,83 @@ export function DroppableTimeSlot({
         ))}
 
         {/* Tasks */}
-        {tasks.map((task) => (
-          <Card
-            key={task.id}
-            className="p-2 bg-card border-l-4 border-l-primary hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => onTaskClick?.(task)}
-          >
-            <div className="flex items-start gap-2">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate">
-                  {task.title}
-                </h4>
-                {task.project_title && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {task.project_title}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 mt-1">
-                  {task.estimated_time_minutes && (
-                    <span className="text-xs text-muted-foreground">
-                      {task.estimated_time_minutes}min
-                    </span>
+        {tasks.map((task) => {
+          const isExpanded = (task as any).isExpanded;
+          const isFirstSlot = (task as any).isFirstSlot;
+          const showFullInfo = !isExpanded || isFirstSlot;
+
+          return (
+            <Card
+              key={`${task.id}-${hour}`}
+              className={`p-2 bg-card hover:shadow-md transition-shadow cursor-pointer ${
+                isExpanded
+                  ? isFirstSlot
+                    ? 'border-l-4 border-l-primary border-b-0 rounded-b-none'
+                    : 'border-l-4 border-l-primary border-t-0 border-b-0 rounded-none'
+                  : 'border-l-4 border-l-primary'
+              }`}
+              onClick={() => onTaskClick?.(task)}
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  {showFullInfo ? (
+                    <>
+                      <h4 className="font-medium text-sm truncate">
+                        {task.title}
+                      </h4>
+                      {task.project_title && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {task.project_title}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        {task.start_time && task.end_time && (
+                          <span className="text-xs text-muted-foreground">
+                            {task.start_time.substring(0, 5)} - {task.end_time.substring(0, 5)}
+                          </span>
+                        )}
+                        {task.estimated_time_minutes && (
+                          <span className="text-xs text-muted-foreground">
+                            ({task.estimated_time_minutes}min)
+                          </span>
+                        )}
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${
+                            task.priority === 'high'
+                              ? 'bg-red-100 text-red-800'
+                              : task.priority === 'medium'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                        </Badge>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-8 flex items-center">
+                      <span className="text-xs text-muted-foreground italic">↑ {task.title}</span>
+                    </div>
                   )}
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs ${
-                      task.priority === 'high'
-                        ? 'bg-red-100 text-red-800'
-                        : task.priority === 'medium'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
-                  </Badge>
                 </div>
+                {showFullInfo && onRemoveTask && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveTask(task.id);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-              {onRemoveTask && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveTask(task.id);
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
 
         {/* Empty state */}
         {!hasContent && !isOver && (

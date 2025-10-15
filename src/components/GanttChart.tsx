@@ -11,9 +11,10 @@ interface GanttChartProps {
   startDate: Date;
   endDate: Date;
   groupBy?: 'project' | 'user' | 'none';
+  onTaskClick?: (task: TimelineTask) => void;
 }
 
-export function GanttChart({ tasks, startDate, endDate, groupBy = 'project' }: GanttChartProps) {
+export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onTaskClick }: GanttChartProps) {
   // Calcular número total de dias
   const totalDays = differenceInDays(endDate, startDate);
   const daysArray = Array.from({ length: totalDays + 1 }, (_, i) => i);
@@ -212,6 +213,7 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project' }: G
                       >
                         <div
                           className={`h-full rounded ${getStatusColor(task.status)} hover:opacity-80 transition-opacity cursor-pointer relative group`}
+                          onClick={() => onTaskClick?.(task)}
                         >
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">

@@ -24,15 +24,41 @@ export function DayTimeline({ meetings, tasks, onRemoveTask, onTaskClick }: DayT
     meetingsByHour.get(hour)?.push(meeting);
   });
 
-  // Organizar tarefas por hora agendado
+  // Organizar tarefas por hora agendado (incluindo expansão)
   const tasksByHour = new Map<number, MyDayTask[]>();
+  const expandedTasks = new Set<string>(); // Rastrear tarefas que já foram expandidas
+
   tasks.forEach(task => {
-    if (task.scheduled_time) {
-      const hour = parseInt(task.scheduled_time.split(':')[0]);
-      if (!tasksByHour.has(hour)) {
-        tasksByHour.set(hour, []);
+    const timeToUse = task.start_time || task.scheduled_time;
+    if (timeToUse) {
+      const startHour = parseInt(timeToUse.split(':')[0]);
+
+      // Se tem end_time, expandir para múltiplos horários
+      if (task.end_time) {
+        const endHour = parseInt(task.end_time.split(':')[0]);
+        const endMinute = parseInt(task.end_time.split(':')[1]);
+
+        // Adicionar tarefa em cada hora que ela ocupa
+        for (let h = startHour; h <= endHour; h++) {
+          // Se é a última hora e termina em :00, não incluir
+          if (h === endHour && endMinute === 0) break;
+
+          if (!tasksByHour.has(h)) {
+            tasksByHour.set(h, []);
+          }
+
+          // Marcar se é primeira hora (para mostrar info completa)
+          const taskCopy = { ...task, isFirstSlot: h === startHour, isExpanded: true };
+          tasksByHour.get(h)?.push(taskCopy as MyDayTask);
+          expandedTasks.add(task.id);
+        }
+      } else {
+        // Tarefa de 1 hora (comportamento legado)
+        if (!tasksByHour.has(startHour)) {
+          tasksByHour.set(startHour, []);
+        }
+        tasksByHour.get(startHour)?.push(task);
       }
-      tasksByHour.get(hour)?.push(task);
     }
   });
 

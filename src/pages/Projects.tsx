@@ -200,6 +200,56 @@ export default function Projects() {
     return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const getDeadlineInfo = (project: Project) => {
+    if (!project.deadline) return null;
+
+    const deadlineDate = new Date(project.deadline);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    const diffTime = deadlineDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Se projeto está concluído, mostrar data de conclusão
+    if (project.status === 'completed') {
+      return {
+        label: 'Concluído',
+        value: deadlineDate.toLocaleDateString('pt-BR'),
+        color: 'text-green-600',
+        badge: 'bg-green-100 text-green-800'
+      };
+    }
+
+    // Se está atrasado
+    if (diffDays < 0) {
+      return {
+        label: 'Atrasado',
+        value: `${Math.abs(diffDays)} dias`,
+        color: 'text-red-600',
+        badge: 'bg-red-100 text-red-800'
+      };
+    }
+
+    // Se está próximo (menos de 7 dias)
+    if (diffDays <= 7) {
+      return {
+        label: 'Prazo',
+        value: deadlineDate.toLocaleDateString('pt-BR'),
+        color: 'text-amber-600',
+        badge: 'bg-amber-100 text-amber-800'
+      };
+    }
+
+    // Normal
+    return {
+      label: 'Prazo',
+      value: deadlineDate.toLocaleDateString('pt-BR'),
+      color: 'text-gray-600',
+      badge: null
+    };
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -426,12 +476,22 @@ export default function Projects() {
 
               {/* Metadata */}
               <div className="grid grid-cols-2 gap-3 text-xs border-t border-border/40 pt-4">
-                {project.deadline && (
-                  <div className="space-y-1">
-                    <div className="text-muted-foreground font-light">Prazo</div>
-                    <div className="font-medium">{new Date(project.deadline).toLocaleDateString('pt-BR')}</div>
-                  </div>
-                )}
+                {project.deadline && (() => {
+                  const deadlineInfo = getDeadlineInfo(project);
+                  return deadlineInfo ? (
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground font-light">{deadlineInfo.label}</div>
+                      <div className={`font-medium ${deadlineInfo.color}`}>
+                        {deadlineInfo.value}
+                      </div>
+                      {deadlineInfo.badge && (
+                        <Badge variant="outline" className={`text-xs ${deadlineInfo.badge} mt-1`}>
+                          {deadlineInfo.label}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
                 {project.budget > 0 && (
                   <div className="space-y-1">
                     <div className="text-muted-foreground font-light">Orçamento</div>

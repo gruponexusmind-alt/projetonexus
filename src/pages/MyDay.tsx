@@ -23,6 +23,8 @@ import {
   Target,
   AlertCircle,
   List,
+  Filter,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -45,8 +47,18 @@ export default function MyDay() {
 
   const [activeTask, setActiveTask] = useState<MyDayTask | null>(null);
   const [selectedTask, setSelectedTask] = useState<MyDayTask | null>(null);
+  const [taskFilters, setTaskFilters] = useState({
+    status: 'all' as 'all' | 'pending' | 'in_progress' | 'review',
+    priority: 'all' as 'all' | 'low' | 'medium' | 'high',
+    project: 'all' as string,
+  });
 
-  const unscheduledTasks = getUnscheduledTasks();
+  const unscheduledTasks = getUnscheduledTasks().filter(task => {
+    if (taskFilters.status !== 'all' && task.status !== taskFilters.status) return false;
+    if (taskFilters.priority !== 'all' && task.priority !== taskFilters.priority) return false;
+    if (taskFilters.project !== 'all' && task.project_id !== taskFilters.project) return false;
+    return true;
+  });
   const scheduledTasks = getScheduledTasks();
   const dayCapacity = calculateDayCapacity();
 
@@ -301,6 +313,73 @@ export default function MyDay() {
                 <CardDescription>
                   Arraste as tarefas para a timeline para agendá-las
                 </CardDescription>
+
+                {/* Filtros */}
+                <div className="flex flex-wrap gap-2 pt-3 border-t">
+                  <Badge
+                    variant={taskFilters.status === 'all' ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, status: 'all'})}
+                  >
+                    Todos
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.status === 'pending' ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, status: 'pending'})}
+                  >
+                    Pendente
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.status === 'in_progress' ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, status: 'in_progress'})}
+                  >
+                    Em Progresso
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.status === 'review' ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, status: 'review'})}
+                  >
+                    Revisão
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge
+                    variant={taskFilters.priority === 'all' ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, priority: 'all'})}
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    Todas
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.priority === 'high' ? 'destructive' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, priority: 'high'})}
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    Alta
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.priority === 'medium' ? 'default' : 'outline'}
+                    className="cursor-pointer bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                    onClick={() => setTaskFilters({...taskFilters, priority: 'medium'})}
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    Média
+                  </Badge>
+                  <Badge
+                    variant={taskFilters.priority === 'low' ? 'secondary' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => setTaskFilters({...taskFilters, priority: 'low'})}
+                  >
+                    <Flag className="h-3 w-3 mr-1" />
+                    Baixa
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 {unscheduledTasks.length === 0 ? (

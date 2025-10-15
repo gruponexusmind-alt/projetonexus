@@ -16,7 +16,10 @@ export interface MyDayTask {
   focus_priority?: number;
   estimated_time_minutes?: number;
   actual_time_minutes?: number;
-  scheduled_time?: string | null; // "09:00:00", "14:30:00"
+  scheduled_time?: string | null; // "09:00:00", "14:30:00" (legacy)
+  start_time?: string | null; // "09:00:00"
+  end_time?: string | null; // "11:00:00"
+  duration_hours?: number; // 2.0
 }
 
 export interface MyDayMeeting {
@@ -160,7 +163,10 @@ export function useMyDayData() {
           is_focused: true,
           focus_priority: item.priority_order,
           estimated_time_minutes: item.estimated_time_minutes,
-          scheduled_time: item.scheduled_time, // Incluir horário agendado
+          scheduled_time: item.scheduled_time, // Legacy
+          start_time: item.start_time,
+          end_time: item.end_time,
+          duration_hours: item.duration_hours,
         }));
 
       // Combinar e deduplificar tarefas
@@ -302,11 +308,28 @@ export function useMyDayData() {
     }
   };
 
-  const scheduleTaskToTime = async (taskId: string, hour: number, minute: number = 0) => {
+  const scheduleTaskToTime = async (taskId: string, hour: number, minute: number = 0, durationHours?: number) => {
     if (!profile?.id || !profile?.company_id) return { success: false, error: 'Perfil não encontrado' };
 
     const today = new Date().toISOString().split('T')[0];
     const scheduledTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+
+    // Calcular horário de término
+    const startTime = scheduledTime;
+    let endTime = scheduledTime;
+    let duration = durationHours || 1.0;
+
+    // Buscar estimated_time_minutes da tarefa para calcular duração padrão
+    const task = todayTasks.find(t => t.id === taskId);
+    if (task?.estimated_time_minutes && !durationHours) {
+      duration = Math.round((task.estimated_time_minutes / 60) * 100) / 100;
+    }
+
+    // Calcular end_time
+    const startDate = new Date(`2000-01-01T${startTime}`);
+    startDate.setHours(startDate.getHours() + Math.floor(duration));
+    startDate.setMinutes(startDate.getMinutes() + Math.round((duration % 1) * 60));
+    endTime = startDate.toTimeString().split(' ')[0];
 
     try {
       // Verificar se já existe registro para esta tarefa
@@ -324,7 +347,12 @@ export function useMyDayData() {
         // Atualizar horário agendado
         const { error } = await supabase
           .from('gp_daily_task_focus')
-          .update({ scheduled_time: scheduledTime })
+          .update({
+            scheduled_time: scheduledTime,
+            start_time: startTime,
+            end_time: endTime,
+            duration_hours: duration,
+          })
           .eq('id', existing.id);
 
         if (error) throw error;
@@ -338,6 +366,9 @@ export function useMyDayData() {
             company_id: profile.company_id,
             focus_date: today,
             scheduled_time: scheduledTime,
+            start_time: startTime,
+            end_time: endTime,
+            duration_hours: duration,
             priority_order: focusedTasks.length,
           });
 

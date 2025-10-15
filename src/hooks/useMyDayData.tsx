@@ -15,6 +15,7 @@ export interface MyDayTask {
   is_focused?: boolean;
   focus_priority?: number;
   estimated_time_minutes?: number;
+  scheduled_time?: string | null; // "09:00:00", "14:30:00"
 }
 
 export interface MyDayMeeting {
@@ -274,6 +275,134 @@ export function useMyDayData() {
     }
   };
 
+  const scheduleTaskToTime = async (taskId: string, hour: number, minute: number = 0) => {
+    if (!profile?.id || !profile?.company_id) return { success: false, error: 'Perfil não encontrado' };
+
+    const today = new Date().toISOString().split('T')[0];
+    const scheduledTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+
+    try {
+      // Verificar se já existe registro para esta tarefa
+      const { data: existing } = await supabase
+        .from('gp_daily_task_focus')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('task_id', taskId)
+        .eq('focus_date', today)
+        .single();
+
+      if (existing) {
+        // Atualizar horário agendado
+        const { error } = await supabase
+          .from('gp_daily_task_focus')
+          .update({ scheduled_time: scheduledTime })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Criar novo registro com horário agendado
+        const { error } = await supabase
+          .from('gp_daily_task_focus')
+          .insert({
+            user_id: profile.id,
+            task_id: taskId,
+            company_id: profile.company_id,
+            focus_date: today,
+            scheduled_time: scheduledTime,
+            priority_order: focusedTasks.length,
+          });
+
+        if (error) throw error;
+      }
+
+      await fetchMyDayData();
+      return { success: true };
+    } catch (error: any) {
+      console.error('Erro ao agendar tarefa:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const removeTaskFromSchedule = async (taskId: string) => {
+    if (!profile?.id) return { success: false, error: 'Perfil não encontrado' };
+
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      // Apenas remove o horário agendado, mantém a tarefa no dia
+      const { error } = await supabase
+        .from('gp_daily_task_focus')
+        .update({ scheduled_time: null })
+        .eq('user_id', profile.id)
+        .eq('task_id', taskId)
+        .eq('focus_date', today);
+
+      if (error) throw error;
+
+      await fetchMyDayData();
+      return { success: true };
+    } catch (error: any) {
+      console.error('Erro ao remover tarefa do horário:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const getScheduledTasks = () => {
+    return todayTasks.filter(task => task.scheduled_time != null);
+  };
+
+  const getUnscheduledTasks = () => {
+    return todayTasks.filter(task => task.scheduled_time == null);
+  };
+
+  const getTasksByHour = () => {
+    const tasksByHour = new Map<number, MyDayTask[]>();
+
+    todayTasks.forEach(task => {
+      if (task.scheduled_time) {
+        const hour = parseInt(task.scheduled_time.split(':')[0]);
+        if (!tasksByHour.has(hour)) {
+          tasksByHour.set(hour, []);
+        }
+        tasksByHour.get(hour)?.push(task);
+      }
+    });
+
+    return tasksByHour;
+  };
+
+  const calculateDayCapacity = () => {
+    // Total disponível: 12 horas (8h-20h) = 720 minutos
+    const totalAvailable = 720;
+
+    // Tempo de tarefas agendadas
+    const tasksTime = todayTasks.reduce((sum, task) => {
+      return sum + (task.estimated_time_minutes || 0);
+    }, 0);
+
+    // Tempo de reuniões
+    const meetingsTime = todayMeetings.reduce((sum, meeting) => {
+      return sum + meeting.duration_minutes;
+    }, 0);
+
+    const totalScheduled = tasksTime + meetingsTime;
+    const occupancyRate = Math.round((totalScheduled / totalAvailable) * 100);
+
+    let status: 'light' | 'normal' | 'full' | 'impossible';
+    if (occupancyRate <= 70) status = 'light';
+    else if (occupancyRate <= 100) status = 'normal';
+    else if (occupancyRate <= 120) status = 'full';
+    else status = 'impossible';
+
+    return {
+      totalAvailable,
+      totalScheduled,
+      occupancyRate,
+      status,
+      remainingTime: Math.max(totalAvailable - totalScheduled, 0),
+    };
+  };
+
   return {
     loading,
     todayTasks,
@@ -283,6 +412,12 @@ export function useMyDayData() {
     addTaskToMyDay,
     removeTaskFromMyDay,
     updateTaskPriority,
+    scheduleTaskToTime,
+    removeTaskFromSchedule,
+    getScheduledTasks,
+    getUnscheduledTasks,
+    getTasksByHour,
+    calculateDayCapacity,
     refresh: fetchMyDayData,
   };
 }

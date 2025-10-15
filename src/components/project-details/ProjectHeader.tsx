@@ -85,14 +85,22 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
     try {
       const { data, error } = await supabase
         .from('v_project_time_stats')
-        .select('total_hours, unique_users')
+        .select('total_hours, unique_users, total_entries')
         .eq('project_id', project.id)
         .single();
 
-      if (error) throw error;
-      setTimeStats(data);
+      if (error) {
+        console.error('Erro ao carregar estatísticas de tempo:', error);
+        // Se der erro, definir valores padrão
+        setTimeStats({ total_hours: 0, unique_users: 0 });
+        return;
+      }
+
+      console.log('📊 Time stats carregadas:', data);
+      setTimeStats(data || { total_hours: 0, unique_users: 0 });
     } catch (error) {
       console.error('Erro ao carregar estatísticas de tempo:', error);
+      setTimeStats({ total_hours: 0, unique_users: 0 });
     }
   };
 

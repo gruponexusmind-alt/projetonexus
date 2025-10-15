@@ -47,7 +47,12 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
 
     return Array.from(groups.entries()).map(([key, groupTasks]) => ({
       label: groupTasks[0]?.project_title || groupTasks[0]?.assigned_user_name || 'Não Atribuído',
-      tasks: groupTasks,
+      tasks: groupTasks.sort((a, b) => {
+        // Ordenar por data de início (ou due_date se não tiver start_date)
+        const dateA = new Date(a.start_date || a.due_date || '9999-12-31');
+        const dateB = new Date(b.start_date || b.due_date || '9999-12-31');
+        return dateA.getTime() - dateB.getTime();
+      }),
     }));
   }, [tasks, groupBy]);
 
@@ -123,10 +128,10 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
       {/* Header com timeline de datas */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="flex">
-          <div className="w-64 flex-shrink-0 p-4 font-semibold border-r">
+          <div className="w-80 flex-shrink-0 p-4 font-semibold border-r">
             {groupBy === 'project' ? 'Projeto / Tarefa' : groupBy === 'user' ? 'Responsável / Tarefa' : 'Tarefa'}
           </div>
-          <div className="flex-1 relative" style={{ minHeight: '80px' }}>
+          <div className="flex-1 relative" style={{ minHeight: '100px' }}>
             {/* Grid de dias com datas */}
             <div className="absolute inset-0 flex">
               {daysArray.map((day) => {
@@ -139,28 +144,28 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                 return (
                   <div
                     key={day}
-                    className={`flex-1 border-r ${
-                      isWeekend ? 'bg-gray-50' : ''
-                    } ${isToday ? 'bg-blue-50 border-blue-300' : 'border-gray-200'}`}
-                    style={{ minWidth: '40px', maxWidth: '60px' }}
+                    className={`flex-1 border-r-2 relative ${
+                      isWeekend ? 'bg-gray-50' : 'bg-white'
+                    } ${isToday ? 'bg-blue-100 border-blue-400' : 'border-gray-300'}`}
+                    style={{ minWidth: '50px', maxWidth: '70px' }}
                   >
-                    <div className="flex flex-col items-center p-1">
+                    <div className="flex flex-col items-center p-2">
                       {/* Mês (só aparece no dia 1) */}
                       {isFirstOfMonth && (
-                        <div className="text-xs font-bold text-primary mb-1">
+                        <div className="text-xs font-bold text-primary mb-1 uppercase">
                           {format(date, 'MMM', { locale: ptBR })}
                         </div>
                       )}
 
                       {/* Dia da semana */}
-                      <div className={`text-[10px] ${isToday ? 'text-blue-600 font-bold' : 'text-muted-foreground'}`}>
+                      <div className={`text-xs mb-1 ${isToday ? 'text-blue-700 font-bold' : 'text-muted-foreground'}`}>
                         {format(date, 'EEE', { locale: ptBR })}
                       </div>
 
                       {/* Número do dia */}
-                      <div className={`text-sm font-semibold ${
+                      <div className={`text-base font-bold ${
                         isToday
-                          ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center'
+                          ? 'bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md'
                           : isWeekend
                           ? 'text-gray-500'
                           : 'text-gray-800'
@@ -168,6 +173,11 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                         {date.getDate()}
                       </div>
                     </div>
+
+                    {/* Linha vertical conectando ao grid */}
+                    {!isToday && (
+                      <div className="absolute right-0 bottom-0 w-0.5 h-4 bg-gray-300" />
+                    )}
                   </div>
                 );
               })}
@@ -195,17 +205,44 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
               return (
                 <div key={task.id} className="flex border-b last:border-b-0 hover:bg-muted/30">
                   {/* Nome da tarefa */}
-                  <div className="w-64 flex-shrink-0 p-3 border-r">
-                    <div className="flex items-start gap-2">
-                      <Flag className={`h-4 w-4 mt-0.5 flex-shrink-0 ${getPriorityColor(task.priority)}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{task.title}</p>
-                        {task.assigned_user_name && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <User className="h-3 w-3" />
-                            <span className="truncate">{task.assigned_user_name}</span>
+                  <div className="w-80 flex-shrink-0 p-3 border-r">
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Flag className={`h-4 w-4 mt-0.5 flex-shrink-0 ${getPriorityColor(task.priority)}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{task.title}</p>
+                          {task.assigned_user_name && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <User className="h-3 w-3" />
+                              <span className="truncate">{task.assigned_user_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Datas e Status */}
+                      <div className="flex items-center justify-between text-xs">
+                        {task.start_date && task.due_date && (
+                          <div className="text-muted-foreground flex items-center gap-1">
+                            <span>{format(parseISO(task.start_date), 'dd/MM/yy')}</span>
+                            <span>→</span>
+                            <span>{format(parseISO(task.due_date), 'dd/MM/yy')}</span>
                           </div>
                         )}
+                        <Badge
+                          variant={
+                            task.status === 'completed' ? 'default' :
+                            task.status === 'in_progress' ? 'secondary' :
+                            task.status === 'review' ? 'outline' :
+                            'secondary'
+                          }
+                          className="text-xs"
+                        >
+                          {task.status === 'completed' ? 'Concluída' :
+                           task.status === 'in_progress' ? 'Em Progresso' :
+                           task.status === 'review' ? 'Revisão' :
+                           'Pendente'}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -223,10 +260,10 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                         return (
                           <div
                             key={day}
-                            className={`flex-1 border-r ${
-                              isWeekend ? 'bg-gray-50' : ''
-                            } ${isToday ? 'bg-blue-50 border-blue-300' : 'border-gray-200'}`}
-                            style={{ minWidth: '40px', maxWidth: '60px' }}
+                            className={`flex-1 border-r-2 ${
+                              isWeekend ? 'bg-gray-50' : 'bg-white'
+                            } ${isToday ? 'bg-blue-100 border-blue-400' : 'border-gray-300'}`}
+                            style={{ minWidth: '50px', maxWidth: '70px' }}
                           />
                         );
                       })}
@@ -242,9 +279,19 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                         }}
                       >
                         <div
-                          className={`h-full rounded ${getStatusColor(task.status)} hover:opacity-80 transition-opacity cursor-pointer relative group`}
+                          className={`h-full rounded ${getStatusColor(task.status)} hover:opacity-80 transition-opacity cursor-pointer relative group flex items-center px-2`}
                           onClick={() => onTaskClick?.(task)}
                         >
+                          {/* Label dentro da barra */}
+                          <div className="flex items-center justify-between w-full text-white text-xs font-medium">
+                            <span className="truncate flex-1">{task.title}</span>
+                            {task.due_date && (
+                              <span className="ml-2 text-[10px] opacity-90 whitespace-nowrap">
+                                {format(parseISO(task.due_date), 'dd/MM')}
+                              </span>
+                            )}
+                          </div>
+
                           {/* Tooltip */}
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20">
                             <Card className="w-64 shadow-lg">

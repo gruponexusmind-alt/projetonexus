@@ -11,6 +11,7 @@ interface DroppableTimeSlotProps {
   meetings: MyDayMeeting[];
   isCurrentHour?: boolean;
   onRemoveTask?: (taskId: string) => void;
+  onTaskClick?: (task: MyDayTask) => void;
 }
 
 export function DroppableTimeSlot({
@@ -19,6 +20,7 @@ export function DroppableTimeSlot({
   meetings,
   isCurrentHour,
   onRemoveTask,
+  onTaskClick,
 }: DroppableTimeSlotProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `hour-${hour}`,
@@ -105,7 +107,8 @@ export function DroppableTimeSlot({
         {tasks.map((task) => (
           <Card
             key={task.id}
-            className="p-2 bg-card border-l-4 border-l-primary hover:shadow-md transition-shadow"
+            className="p-2 bg-card border-l-4 border-l-primary hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => onTaskClick?.(task)}
           >
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
@@ -142,7 +145,10 @@ export function DroppableTimeSlot({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => onRemoveTask(task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveTask(task.id);
+                  }}
                 >
                   <X className="h-3 w-3" />
                 </Button>

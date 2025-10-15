@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMyDayData } from '@/hooks/useMyDayData';
 import { DayTimeline } from '@/components/DayTimeline';
 import { DraggableTaskCard } from '@/components/DraggableTaskCard';
+import { TaskDetailsModal } from '@/components/TaskDetailsModal';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -43,6 +44,7 @@ export default function MyDay() {
   } = useMyDayData();
 
   const [activeTask, setActiveTask] = useState<MyDayTask | null>(null);
+  const [selectedTask, setSelectedTask] = useState<MyDayTask | null>(null);
 
   const unscheduledTasks = getUnscheduledTasks();
   const scheduledTasks = getScheduledTasks();
@@ -85,6 +87,10 @@ export default function MyDay() {
     } else {
       toast.error(result?.error || 'Erro ao remover tarefa do horário');
     }
+  };
+
+  const handleTaskClick = (task: MyDayTask) => {
+    setSelectedTask(task);
   };
 
   const getCapacityColor = () => {
@@ -305,7 +311,7 @@ export default function MyDay() {
                 ) : (
                   <div className="space-y-2 max-h-[600px] overflow-y-auto">
                     {unscheduledTasks.map((task) => (
-                      <DraggableTaskCard key={task.id} task={task} />
+                      <DraggableTaskCard key={task.id} task={task} onTaskClick={handleTaskClick} />
                     ))}
                   </div>
                 )}
@@ -328,6 +334,7 @@ export default function MyDay() {
                   meetings={todayMeetings}
                   tasks={todayTasks}
                   onRemoveTask={handleRemoveTask}
+                  onTaskClick={handleTaskClick}
                 />
               </CardContent>
             </Card>
@@ -339,6 +346,16 @@ export default function MyDay() {
       <DragOverlay>
         {activeTask && <DraggableTaskCard task={activeTask} isDragging />}
       </DragOverlay>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask as any}
+          open={!!selectedTask}
+          onOpenChange={(open) => !open && setSelectedTask(null)}
+          onUpdate={refresh}
+        />
+      )}
     </DndContext>
   );
 }

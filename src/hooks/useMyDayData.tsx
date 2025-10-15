@@ -66,7 +66,6 @@ export function useMyDayData() {
 
       // Buscar tarefas focadas do dia (da tabela gp_daily_task_focus)
       const today = new Date().toISOString().split('T')[0];
-      console.log('1️⃣ Buscando tarefas focadas...');
       const { data: focusData, error: focusError } = await supabase
         .from('gp_daily_task_focus')
         .select(`
@@ -87,14 +86,9 @@ export function useMyDayData() {
         .eq('focus_date', today)
         .order('priority_order');
 
-      if (focusError) {
-        console.error('❌ Erro em tarefas focadas:', focusError);
-        throw focusError;
-      }
-      console.log('✅ Tarefas focadas:', focusData?.length || 0);
+      if (focusError) throw focusError;
 
       // Buscar tarefas com vencimento hoje
-      console.log('2️⃣ Buscando tarefas com vencimento hoje...');
       const { data: todayData, error: todayError } = await supabase
         .from('gp_tasks')
         .select(`
@@ -106,14 +100,9 @@ export function useMyDayData() {
         .eq('due_date', today)
         .order('priority', { ascending: false });
 
-      if (todayError) {
-        console.error('❌ Erro em tarefas de hoje:', todayError);
-        throw todayError;
-      }
-      console.log('✅ Tarefas de hoje:', todayData?.length || 0);
+      if (todayError) throw todayError;
 
       // Buscar tarefas em progresso
-      console.log('3️⃣ Buscando tarefas em progresso...');
       const { data: inProgressData, error: inProgressError } = await supabase
         .from('gp_tasks')
         .select(`
@@ -125,14 +114,9 @@ export function useMyDayData() {
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false });
 
-      if (inProgressError) {
-        console.error('❌ Erro em tarefas em progresso:', inProgressError);
-        throw inProgressError;
-      }
-      console.log('✅ Tarefas em progresso:', inProgressData?.length || 0);
+      if (inProgressError) throw inProgressError;
 
       // Buscar todas as tarefas não concluídas do usuário (para ter uma visão completa)
-      console.log('4️⃣ Buscando todas as tarefas não concluídas...');
       const { data: myTasksData, error: myTasksError } = await supabase
         .from('gp_tasks')
         .select(`
@@ -145,25 +129,9 @@ export function useMyDayData() {
         .order('priority', { ascending: false })
         .limit(50);
 
-      if (myTasksError) {
-        console.error('❌ Erro em todas as tarefas:', myTasksError);
-        throw myTasksError;
-      }
-      console.log('✅ Todas as minhas tarefas:', myTasksData?.length || 0);
-
-      // Debug logs
-      console.log('🔍 Debug Meu Dia:', {
-        profile_id: profile.id,
-        company_id: profile.company_id,
-        focusData: focusData?.length || 0,
-        todayData: todayData?.length || 0,
-        inProgressData: inProgressData?.length || 0,
-        myTasksData: myTasksData?.length || 0,
-        today: today,
-      });
+      if (myTasksError) throw myTasksError;
 
       // Buscar reuniões do dia
-      console.log('5️⃣ Buscando reuniões do dia...');
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date();
@@ -180,11 +148,7 @@ export function useMyDayData() {
         .lte('meeting_date', todayEnd.toISOString())
         .order('meeting_date');
 
-      if (meetingsError) {
-        console.error('❌ Erro em reuniões:', meetingsError);
-        throw meetingsError;
-      }
-      console.log('✅ Reuniões do dia:', meetingsData?.length || 0);
+      if (meetingsError) throw meetingsError;
 
       // Processar tarefas focadas
       const focused: MyDayTask[] = (focusData || [])
@@ -195,6 +159,7 @@ export function useMyDayData() {
           is_focused: true,
           focus_priority: item.priority_order,
           estimated_time_minutes: item.estimated_time_minutes,
+          scheduled_time: item.scheduled_time, // Incluir horário agendado
         }));
 
       // Combinar e deduplificar tarefas
@@ -234,10 +199,6 @@ export function useMyDayData() {
       });
 
       const allTasks = Array.from(allTasksMap.values());
-
-      // Debug: mostrar tarefas finais
-      console.log('📋 Total de tarefas processadas:', allTasks.length);
-      console.log('📋 Tarefas:', allTasks);
 
       // Calcular estatísticas
       const completed = allTasks.filter(t => t.status === 'completed').length;
@@ -348,13 +309,15 @@ export function useMyDayData() {
 
     try {
       // Verificar se já existe registro para esta tarefa
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('gp_daily_task_focus')
         .select('id')
         .eq('user_id', profile.id)
         .eq('task_id', taskId)
         .eq('focus_date', today)
-        .single();
+        .maybeSingle();
+
+      if (existingError) throw existingError;
 
       if (existing) {
         // Atualizar horário agendado

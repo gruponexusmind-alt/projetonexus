@@ -6,9 +6,10 @@ interface DayTimelineProps {
   meetings: MyDayMeeting[];
   tasks: MyDayTask[];
   onRemoveTask?: (taskId: string) => void;
+  onTaskClick?: (task: MyDayTask) => void;
 }
 
-export function DayTimeline({ meetings, tasks, onRemoveTask }: DayTimelineProps) {
+export function DayTimeline({ meetings, tasks, onRemoveTask, onTaskClick }: DayTimelineProps) {
   // Gerar linha do tempo de 8h às 20h
   const hours = Array.from({ length: 13 }, (_, i) => 8 + i); // 8h às 20h
 
@@ -63,6 +64,7 @@ export function DayTimeline({ meetings, tasks, onRemoveTask }: DayTimelineProps)
               meetings={hourMeetings}
               isCurrentHour={isCurrentHour}
               onRemoveTask={onRemoveTask}
+              onTaskClick={onTaskClick}
             />
           );
         })}

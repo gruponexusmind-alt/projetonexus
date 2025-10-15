@@ -13,9 +13,10 @@ import { MyDayTask } from '@/hooks/useMyDayData';
 interface DraggableTaskCardProps {
   task: MyDayTask;
   isDragging?: boolean;
+  onTaskClick?: (task: MyDayTask) => void;
 }
 
-export function DraggableTaskCard({ task, isDragging: externalIsDragging }: DraggableTaskCardProps) {
+export function DraggableTaskCard({ task, isDragging: externalIsDragging, onTaskClick }: DraggableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging: dndIsDragging } = useDraggable({
     id: task.id,
     data: {
@@ -29,7 +30,6 @@ export function DraggableTaskCard({ task, isDragging: externalIsDragging }: Drag
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
   };
 
   const getPriorityColor = (priority: string) => {
@@ -85,7 +85,10 @@ export function DraggableTaskCard({ task, isDragging: externalIsDragging }: Drag
             </button>
 
             {/* Task content */}
-            <div className="flex-1 space-y-2">
+            <div
+              className="flex-1 space-y-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => onTaskClick?.(task)}
+            >
               {/* Title */}
               <h4 className="font-medium text-sm leading-snug line-clamp-2">
                 {task.title}

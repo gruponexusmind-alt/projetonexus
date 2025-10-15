@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TaskLabelsSelector } from '@/components/TaskLabelsSelector';
 import { TaskDependenciesManager } from '@/components/TaskDependenciesManager';
 import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
-import { CalendarIcon, Edit, Save, Link2, Info, ListChecks } from 'lucide-react';
+import { TaskTimer } from '@/components/TaskTimer';
+import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -228,7 +229,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
               Informações
@@ -236,6 +237,10 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
             <TabsTrigger value="checklist" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               Checklist
+            </TabsTrigger>
+            <TabsTrigger value="timer" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Timer
             </TabsTrigger>
           </TabsList>
 
@@ -479,6 +484,13 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
               taskId={task.id}
               companyId={task.company_id}
               onUpdate={onTaskUpdated}
+            />
+          </TabsContent>
+
+          <TabsContent value="timer" className="space-y-4">
+            <TaskTimer
+              taskId={task.id}
+              taskTitle={task.title}
             />
           </TabsContent>
         </Tabs>

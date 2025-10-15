@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Upload, Edit, User, Calendar, BarChart3, List, Share2 } from 'lucide-react';
+import { Plus, Upload, Edit, User, Calendar, BarChart3, List, Share2, Clock } from 'lucide-react';
 import { CreateTaskModal } from '@/components/CreateTaskModal';
 import { DocumentDetailsModal } from '@/components/DocumentDetailsModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
@@ -56,9 +56,11 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps) {
   const [stages, setStages] = useState<Stage[]>([]);
   const [currentStage, setCurrentStage] = useState<Stage | null>(null);
+  const [timeStats, setTimeStats] = useState<{ total_hours: number; unique_users: number } | null>(null);
 
   useEffect(() => {
     fetchStages();
+    fetchTimeStats();
   }, [project.id]);
 
   const fetchStages = async () => {
@@ -76,6 +78,21 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
       setCurrentStage(current || null);
     } catch (error) {
       console.error('Erro ao carregar etapas:', error);
+    }
+  };
+
+  const fetchTimeStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('v_project_time_stats')
+        .select('total_hours, unique_users')
+        .eq('project_id', project.id)
+        .single();
+
+      if (error) throw error;
+      setTimeStats(data);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas de tempo:', error);
     }
   };
 
@@ -237,7 +254,7 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 space-y-1">
             <p className="text-xs font-light text-muted-foreground">Cliente</p>
@@ -278,6 +295,23 @@ export function ProjectHeader({ project, stats, onRefresh }: ProjectHeaderProps)
           <CardContent className="p-4 space-y-1">
             <p className="text-xs font-light text-muted-foreground">Total de Tarefas</p>
             <p className="text-base font-medium">{stats?.total || 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-50 to-transparent border-blue-200">
+          <CardContent className="p-4 space-y-1">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-blue-600" />
+              <p className="text-xs font-light text-blue-700">Horas Trabalhadas</p>
+            </div>
+            <p className="text-base font-medium text-blue-900">
+              {timeStats?.total_hours?.toFixed(1) || '0.0'}h
+            </p>
+            {timeStats && timeStats.unique_users > 0 && (
+              <p className="text-xs text-blue-600">
+                {timeStats.unique_users} {timeStats.unique_users === 1 ? 'pessoa' : 'pessoas'}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

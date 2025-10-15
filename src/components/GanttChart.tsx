@@ -126,30 +126,51 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
           <div className="w-64 flex-shrink-0 p-4 font-semibold border-r">
             {groupBy === 'project' ? 'Projeto / Tarefa' : groupBy === 'user' ? 'Responsável / Tarefa' : 'Tarefa'}
           </div>
-          <div className="flex-1 relative h-16">
-            {/* Marcadores de mês */}
+          <div className="flex-1 relative" style={{ minHeight: '80px' }}>
+            {/* Grid de dias com datas */}
             <div className="absolute inset-0 flex">
-              {monthMarkers.map((marker, idx) => (
-                <div
-                  key={idx}
-                  className="absolute top-0 h-full border-l border-gray-300"
-                  style={{ left: `${marker.position}%` }}
-                >
-                  <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                    {marker.label}
+              {daysArray.map((day) => {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + day);
+                const isFirstOfMonth = date.getDate() === 1;
+                const isToday = date.toDateString() === new Date().toDateString();
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                return (
+                  <div
+                    key={day}
+                    className={`flex-1 border-r ${
+                      isWeekend ? 'bg-gray-50' : ''
+                    } ${isToday ? 'bg-blue-50 border-blue-300' : 'border-gray-200'}`}
+                    style={{ minWidth: '40px', maxWidth: '60px' }}
+                  >
+                    <div className="flex flex-col items-center p-1">
+                      {/* Mês (só aparece no dia 1) */}
+                      {isFirstOfMonth && (
+                        <div className="text-xs font-bold text-primary mb-1">
+                          {format(date, 'MMM', { locale: ptBR })}
+                        </div>
+                      )}
+
+                      {/* Dia da semana */}
+                      <div className={`text-[10px] ${isToday ? 'text-blue-600 font-bold' : 'text-muted-foreground'}`}>
+                        {format(date, 'EEE', { locale: ptBR })}
+                      </div>
+
+                      {/* Número do dia */}
+                      <div className={`text-sm font-semibold ${
+                        isToday
+                          ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center'
+                          : isWeekend
+                          ? 'text-gray-500'
+                          : 'text-gray-800'
+                      }`}>
+                        {date.getDate()}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            {/* Grid de dias */}
-            <div className="absolute inset-0 flex">
-              {daysArray.map((day) => (
-                <div
-                  key={day}
-                  className="flex-1 border-r border-gray-100"
-                  style={{ minWidth: '20px' }}
-                />
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -193,13 +214,22 @@ export function GanttChart({ tasks, startDate, endDate, groupBy = 'project', onT
                   <div className="flex-1 relative p-3">
                     {/* Grid de fundo */}
                     <div className="absolute inset-0 flex">
-                      {daysArray.map((day) => (
-                        <div
-                          key={day}
-                          className="flex-1 border-r border-gray-100"
-                          style={{ minWidth: '20px' }}
-                        />
-                      ))}
+                      {daysArray.map((day) => {
+                        const date = new Date(startDate);
+                        date.setDate(date.getDate() + day);
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                        const isToday = date.toDateString() === new Date().toDateString();
+
+                        return (
+                          <div
+                            key={day}
+                            className={`flex-1 border-r ${
+                              isWeekend ? 'bg-gray-50' : ''
+                            } ${isToday ? 'bg-blue-50 border-blue-300' : 'border-gray-200'}`}
+                            style={{ minWidth: '40px', maxWidth: '60px' }}
+                          />
+                        );
+                      })}
                     </div>
 
                     {/* Barra da tarefa */}

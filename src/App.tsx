@@ -22,6 +22,7 @@ const Projects = lazy(() => import("./pages/Projects"));
 const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const MyDay = lazy(() => import("./pages/MyDay"));
+const Timeline = lazy(() => import("./pages/Timeline"));
 const TasksDebug = lazy(() => import("./pages/TasksDebug"));
 const Meetings = lazy(() => import("./pages/Meetings"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -142,6 +143,18 @@ const App = () => {
                       <AppSidebar />
                       <main className="flex-1">
                         <MyDay />
+                      </main>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/timeline" element={
+                <ProtectedRoute allowedRoles={['admin', 'operacional']}>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <main className="flex-1">
+                        <Timeline />
                       </main>
                     </div>
                   </SidebarProvider>

@@ -31,6 +31,7 @@ import {
   ChevronUp,
   CheckSquare,
   Target,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -60,6 +61,12 @@ const navigationItems = [
     title: 'Tarefas',
     url: '/tasks',
     icon: CheckSquare,
+    roles: ['admin', 'operacional'],
+  },
+  {
+    title: 'Timeline',
+    url: '/timeline',
+    icon: BarChart3,
     roles: ['admin', 'operacional'],
   },
   {

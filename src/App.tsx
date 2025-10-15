@@ -26,6 +26,7 @@ const Timeline = lazy(() => import("./pages/Timeline"));
 const TasksDebug = lazy(() => import("./pages/TasksDebug"));
 const Meetings = lazy(() => import("./pages/Meetings"));
 const Settings = lazy(() => import("./pages/Settings"));
+const TimeReports = lazy(() => import("./pages/TimeReports"));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
 const ClientProjectDetail = lazy(() => import("./pages/ClientProjectDetail"));
 const ClientInvite = lazy(() => import("./pages/ClientInvite"));
@@ -167,6 +168,18 @@ const App = () => {
                       <AppSidebar />
                       <main className="flex-1">
                         <Meetings />
+                      </main>
+                    </div>
+                  </SidebarProvider>
+                </ProtectedRoute>
+              } />
+              <Route path="/time-reports" element={
+                <ProtectedRoute allowedRoles={['admin', 'operacional']}>
+                  <SidebarProvider>
+                    <div className="flex min-h-screen w-full">
+                      <AppSidebar />
+                      <main className="flex-1">
+                        <TimeReports />
                       </main>
                     </div>
                   </SidebarProvider>

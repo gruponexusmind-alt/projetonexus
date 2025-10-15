@@ -13,10 +13,11 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
+import { TaskTimer } from '@/components/TaskTimer';
 import { Task } from '@/pages/Tasks';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Info, ListChecks, Save } from 'lucide-react';
+import { Info, ListChecks, Save, Clock } from 'lucide-react';
 
 interface TaskDetailsModalProps {
   task: Task;
@@ -88,7 +89,7 @@ export function TaskDetailsModal({ task, open, onOpenChange, onUpdate }: TaskDet
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
               Informações
@@ -96,6 +97,10 @@ export function TaskDetailsModal({ task, open, onOpenChange, onUpdate }: TaskDet
             <TabsTrigger value="checklist" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               Checklist
+            </TabsTrigger>
+            <TabsTrigger value="timer" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Controle de Tempo
             </TabsTrigger>
           </TabsList>
 
@@ -219,6 +224,13 @@ export function TaskDetailsModal({ task, open, onOpenChange, onUpdate }: TaskDet
               taskId={task.id}
               companyId={task.company_id}
               onUpdate={onUpdate}
+            />
+          </TabsContent>
+
+          <TabsContent value="timer" className="space-y-4 pt-4">
+            <TaskTimer
+              taskId={task.id}
+              taskTitle={task.title}
             />
           </TabsContent>
         </Tabs>

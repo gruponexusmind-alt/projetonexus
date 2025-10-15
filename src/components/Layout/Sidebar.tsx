@@ -32,6 +32,7 @@ import {
   CheckSquare,
   Target,
   BarChart3,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -73,6 +74,12 @@ const navigationItems = [
     title: 'Reuniões',
     url: '/meetings',
     icon: Calendar,
+    roles: ['admin', 'operacional'],
+  },
+  {
+    title: 'Relatórios de Tempo',
+    url: '/time-reports',
+    icon: Clock,
     roles: ['admin', 'operacional'],
   },
   {

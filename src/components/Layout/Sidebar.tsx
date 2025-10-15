@@ -30,6 +30,7 @@ import {
   UserCircle,
   ChevronUp,
   CheckSquare,
+  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -41,6 +42,12 @@ const navigationItems = [
     title: 'Dashboard',
     url: '/',
     icon: LayoutDashboard,
+    roles: ['admin', 'operacional'],
+  },
+  {
+    title: 'Meu Dia',
+    url: '/my-day',
+    icon: Target,
     roles: ['admin', 'operacional'],
   },
   {

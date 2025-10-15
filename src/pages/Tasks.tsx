@@ -42,6 +42,10 @@ export interface TaskFiltersState {
   clientExecution: boolean;
   overdue?: boolean;
   blocked?: boolean;
+  stageId?: string;
+  dateRange?: 'today' | 'week' | 'month' | 'custom';
+  customStartDate?: string;
+  customEndDate?: string;
 }
 
 export default function Tasks() {
@@ -174,6 +178,55 @@ export default function Tasks() {
 
     // Blocked filter
     if (filters.blocked && !(task as any).blocked) {
+      return false;
+    }
+
+    // Stage filter
+    if (filters.stageId && (task as any).stage_id !== filters.stageId) {
+      return false;
+    }
+
+    // Date Range filter
+    if (filters.dateRange && task.due_date) {
+      const now = new Date();
+      const dueDate = new Date(task.due_date);
+
+      switch (filters.dateRange) {
+        case 'today': {
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const taskDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          if (taskDate.getTime() !== today.getTime()) return false;
+          break;
+        }
+        case 'week': {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 7);
+          if (dueDate < weekStart || dueDate >= weekEnd) return false;
+          break;
+        }
+        case 'month': {
+          if (dueDate.getMonth() !== now.getMonth() || dueDate.getFullYear() !== now.getFullYear()) {
+            return false;
+          }
+          break;
+        }
+        case 'custom': {
+          if (filters.customStartDate) {
+            const startDate = new Date(filters.customStartDate);
+            if (dueDate < startDate) return false;
+          }
+          if (filters.customEndDate) {
+            const endDate = new Date(filters.customEndDate);
+            if (dueDate > endDate) return false;
+          }
+          break;
+        }
+      }
+    } else if (filters.dateRange && !task.due_date) {
+      // Se tem filtro de data mas a tarefa não tem data, excluir
       return false;
     }
 

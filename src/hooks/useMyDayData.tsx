@@ -116,6 +116,21 @@ export function useMyDayData() {
 
       if (inProgressError) throw inProgressError;
 
+      // Buscar todas as tarefas não concluídas do usuário (para ter uma visão completa)
+      const { data: myTasksData, error: myTasksError } = await supabase
+        .from('gp_tasks')
+        .select(`
+          *,
+          project:gp_projects(id, title)
+        `)
+        .eq('company_id', profile.company_id)
+        .eq('assigned_to', profile.id)
+        .in('status', ['pending', 'in_progress', 'review'])
+        .order('priority', { ascending: false })
+        .limit(50);
+
+      if (myTasksError) throw myTasksError;
+
       // Buscar reuniões do dia
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -164,6 +179,16 @@ export function useMyDayData() {
 
       // Adicionar tarefas em progresso
       (inProgressData || []).forEach(task => {
+        if (!allTasksMap.has(task.id)) {
+          allTasksMap.set(task.id, {
+            ...task,
+            project_title: task.project?.title,
+          });
+        }
+      });
+
+      // Adicionar todas as minhas tarefas não concluídas
+      (myTasksData || []).forEach(task => {
         if (!allTasksMap.has(task.id)) {
           allTasksMap.set(task.id, {
             ...task,

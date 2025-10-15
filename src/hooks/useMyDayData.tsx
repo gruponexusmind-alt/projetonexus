@@ -173,9 +173,9 @@ export function useMyDayData() {
         .from('gp_meetings')
         .select(`
           *,
-          project:gp_projects(id, title)
+          project:gp_projects!inner(id, title, company_id)
         `)
-        .eq('company_id', profile.company_id)
+        .eq('project.company_id', profile.company_id)
         .gte('meeting_date', todayStart.toISOString())
         .lte('meeting_date', todayEnd.toISOString())
         .order('meeting_date');

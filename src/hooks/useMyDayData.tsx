@@ -15,6 +15,7 @@ export interface MyDayTask {
   is_focused?: boolean;
   focus_priority?: number;
   estimated_time_minutes?: number;
+  actual_time_minutes?: number;
   scheduled_time?: string | null; // "09:00:00", "14:30:00"
 }
 

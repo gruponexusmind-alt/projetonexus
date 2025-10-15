@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatDuration } from '@/types/timeEntry';
 import {
   GripVertical,
   Clock,
@@ -60,6 +61,21 @@ export function DraggableTaskCard({ task, isDragging: externalIsDragging, onTask
     return colors[status as keyof typeof colors] || 'border-l-gray-400';
   };
 
+  const getTimeStatusColor = () => {
+    if (!task.estimated_time_minutes || !task.actual_time_minutes) return null;
+
+    const variance = task.actual_time_minutes - task.estimated_time_minutes;
+    const percentageDiff = (variance / task.estimated_time_minutes) * 100;
+
+    if (variance <= 0) {
+      return 'bg-green-100 text-green-800 border-green-200';
+    } else if (percentageDiff <= 25) {
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    } else {
+      return 'bg-red-100 text-red-800 border-red-200';
+    }
+  };
+
   return (
     <div ref={setNodeRef} style={style}>
       <Card
@@ -110,8 +126,16 @@ export function DraggableTaskCard({ task, isDragging: externalIsDragging, onTask
                   {getPriorityLabel(task.priority)}
                 </Badge>
 
-                {/* Estimated time */}
-                {task.estimated_time_minutes && (
+                {/* Time Progress Badge */}
+                {task.actual_time_minutes && task.estimated_time_minutes && (
+                  <Badge className={getTimeStatusColor() || ''} variant="secondary">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {formatDuration(task.actual_time_minutes)} / {formatDuration(task.estimated_time_minutes)}
+                  </Badge>
+                )}
+
+                {/* Estimated time (only show if no actual time yet) */}
+                {task.estimated_time_minutes && !task.actual_time_minutes && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     <span>{task.estimated_time_minutes}min</span>

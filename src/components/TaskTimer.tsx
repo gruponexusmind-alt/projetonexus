@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { TaskTimeHistory } from '@/components/TaskTimeHistory';
 import { useTaskTimer } from '@/hooks/useTaskTimer';
 import { Play, Pause, Square, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ export function TaskTimer({ taskId, taskTitle, compact = false, className }: Tas
     elapsed,
     activeEntry,
     loading,
+    sessionCount,
     startTimer,
     pauseTimer,
     stopTimer,
@@ -39,6 +41,7 @@ export function TaskTimer({ taskId, taskTitle, compact = false, className }: Tas
 
   const [showStopDialog, setShowStopDialog] = useState(false);
   const [description, setDescription] = useState('');
+  const [historyKey, setHistoryKey] = useState(0);
 
   // Format elapsed time as HH:MM:SS or MM:SS
   const formatElapsed = (seconds: number): string => {
@@ -76,6 +79,8 @@ export function TaskTimer({ taskId, taskTitle, compact = false, className }: Tas
     await stopTimer(description.trim() || undefined);
     setShowStopDialog(false);
     setDescription('');
+    // Atualizar histórico
+    setHistoryKey(prev => prev + 1);
   };
 
   const handleStopCancel = () => {
@@ -237,6 +242,11 @@ export function TaskTimer({ taskId, taskTitle, compact = false, className }: Tas
             <p className="text-sm text-muted-foreground mt-2">
               {isRunning ? 'Timer em execução' : 'Timer parado'}
             </p>
+            {sessionCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {isRunning ? `Sessão #${sessionCount + 1}` : `${sessionCount} sessão${sessionCount > 1 ? 'ões' : ''} registrada${sessionCount > 1 ? 's' : ''}`}
+              </p>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -300,6 +310,15 @@ export function TaskTimer({ taskId, taskTitle, compact = false, className }: Tas
           )}
         </CardContent>
       </Card>
+
+      {/* Histórico de Sessões */}
+      <div className="mt-6">
+        <TaskTimeHistory
+          key={historyKey}
+          taskId={taskId}
+          onEntriesChange={() => setHistoryKey(prev => prev + 1)}
+        />
+      </div>
 
       {/* Stop Dialog */}
       <Dialog open={showStopDialog} onOpenChange={setShowStopDialog}>

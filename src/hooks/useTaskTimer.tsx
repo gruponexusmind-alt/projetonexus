@@ -10,6 +10,7 @@ interface UseTaskTimerReturn {
   elapsed: number;  // segundos
   activeEntry: TimeEntry | null;
   loading: boolean;
+  sessionCount: number;  // Número de sessões concluídas
 
   // Ações
   startTimer: () => Promise<void>;
@@ -29,6 +30,7 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
   const [loading, setLoading] = useState(false);
   const [hasOtherActiveTimer, setHasOtherActiveTimer] = useState(false);
   const [otherActiveTask, setOtherActiveTask] = useState<string | null>(null);
+  const [sessionCount, setSessionCount] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -36,6 +38,7 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
   useEffect(() => {
     checkActiveTimer();
     checkOtherActiveTimers();
+    fetchSessionCount();
 
     return () => {
       if (intervalRef.current) {
@@ -62,6 +65,26 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
     }
   }, [isRunning, activeEntry]);
 
+  // Buscar número de sessões concluídas
+  const fetchSessionCount = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('gp_time_entries')
+        .select('*', { count: 'exact', head: true })
+        .eq('task_id', taskId)
+        .eq('user_id', profile.id)
+        .not('end_time', 'is', null);
+
+      if (error) throw error;
+
+      setSessionCount(count || 0);
+    } catch (error) {
+      console.error('Erro ao buscar contagem de sessões:', error);
+    }
+  };
+
   // Verificar se já existe timer ativo para esta tarefa
   const checkActiveTimer = async () => {
     if (!profile?.id) return;
@@ -73,9 +96,9 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
         .eq('user_id', profile.id)
         .eq('task_id', taskId)
         .is('end_time', null)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = não encontrado
+      if (error) {
         throw error;
       }
 
@@ -217,12 +240,27 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
 
       const minutes = Math.floor(elapsed / 60);
 
+      // Buscar tempo total atualizado da tarefa
+      const { data: taskData } = await supabase
+        .from('gp_tasks')
+        .select('actual_time_minutes')
+        .eq('id', taskId)
+        .single();
+
       setIsRunning(false);
       setActiveEntry(null);
       setElapsed(0);
 
+      // Atualizar contagem de sessões
+      await fetchSessionCount();
+
+      const totalMinutes = taskData?.actual_time_minutes || 0;
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      const totalFormatted = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+
       toast.success('Timer finalizado!', {
-        description: `Tempo total: ${minutes} minutos`,
+        description: `Sessão: ${minutes}min | Total acumulado: ${totalFormatted}`,
       });
     } catch (error: any) {
       console.error('Erro ao parar timer:', error);
@@ -232,13 +270,14 @@ export function useTaskTimer(taskId: string): UseTaskTimerReturn {
     } finally {
       setLoading(false);
     }
-  }, [activeEntry, isRunning, elapsed]);
+  }, [activeEntry, isRunning, elapsed, taskId]);
 
   return {
     isRunning,
     elapsed,
     activeEntry,
     loading,
+    sessionCount,
     startTimer,
     pauseTimer,
     stopTimer,

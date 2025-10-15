@@ -17,6 +17,7 @@ import { TaskTimer } from '@/components/TaskTimer';
 import { Task } from '@/pages/Tasks';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatDuration } from '@/types/timeEntry';
 import { Info, ListChecks, Save, Clock } from 'lucide-react';
 
 interface TaskDetailsModalProps {
@@ -198,6 +199,45 @@ export function TaskDetailsModal({ task, open, onOpenChange, onUpdate }: TaskDet
                 />
               </div>
             </div>
+
+            {/* Time Spent (read-only) */}
+            {(task.actual_time_minutes || task.estimated_time_minutes) && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Tempo Gasto
+                </Label>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md space-y-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-blue-700">
+                      {formatDuration(task.actual_time_minutes || 0)}
+                    </span>
+                    {task.estimated_time_minutes && task.estimated_time_minutes > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        de {formatDuration(task.estimated_time_minutes)} estimados
+                      </span>
+                    )}
+                  </div>
+                  {task.estimated_time_minutes && task.estimated_time_minutes > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {Math.round(((task.actual_time_minutes || 0) / task.estimated_time_minutes) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-600 transition-all"
+                          style={{
+                            width: `${Math.min(((task.actual_time_minutes || 0) / task.estimated_time_minutes) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Project Info (read-only) */}
             <div className="space-y-2">

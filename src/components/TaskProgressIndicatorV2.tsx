@@ -1,26 +1,26 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from '@/components/ui/dialog';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
 } from '@/components/ui/tooltip';
-import { 
-  Settings, 
-  CheckSquare, 
-  ListTodo, 
-  Activity, 
+import {
+  Settings,
+  CheckSquare,
+  ListTodo,
+  Activity,
   User,
   RefreshCw
 } from 'lucide-react';
@@ -39,14 +39,22 @@ export function TaskProgressIndicatorV2({
 }: TaskProgressIndicatorV2Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [manualProgress, setManualProgress] = useState(0);
-  const { 
-    progressData, 
-    progressInfo, 
-    loading, 
-    updateManualProgress, 
+  const isMountedRef = useRef<boolean>(true);
+  const {
+    progressData,
+    progressInfo,
+    loading,
+    updateManualProgress,
     resetToAutoProgress,
     refresh
   } = useTaskProgress(taskId);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (loading || !progressData || !progressInfo) {
     return (
@@ -87,19 +95,42 @@ export function TaskProgressIndicatorV2({
   };
 
   const handleManualUpdate = async () => {
+    if (!isMountedRef.current) return;
+
     const success = await updateManualProgress(manualProgress);
-    if (success) {
+    if (success && isMountedRef.current) {
       setDialogOpen(false);
-      onProgressUpdate?.();
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          onProgressUpdate?.();
+        }
+      }, 50);
     }
   };
 
   const handleReset = async () => {
+    if (!isMountedRef.current) return;
+
     const success = await resetToAutoProgress();
-    if (success) {
+    if (success && isMountedRef.current) {
       setDialogOpen(false);
-      onProgressUpdate?.();
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          onProgressUpdate?.();
+        }
+      }, 50);
     }
+  };
+
+  const handleRefresh = () => {
+    if (!isMountedRef.current) return;
+
+    refresh();
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        onProgressUpdate?.();
+      }
+    }, 50);
   };
 
   const sizeClasses = {
@@ -142,14 +173,11 @@ export function TaskProgressIndicatorV2({
         
         <div className="flex items-center gap-2">
           <span className={textSizeClasses[size]}>{progressData.progress}%</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-5 w-5 p-0"
-            onClick={() => {
-              refresh();
-              onProgressUpdate?.();
-            }}
+            onClick={handleRefresh}
           >
             <RefreshCw className="h-3 w-3" />
           </Button>

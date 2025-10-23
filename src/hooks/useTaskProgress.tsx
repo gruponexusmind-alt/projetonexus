@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,12 +21,13 @@ interface TaskProgressInfo {
 export function useTaskProgress(taskId: string) {
   const [progressData, setProgressData] = useState<TaskProgressData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastKnownProgress, setLastKnownProgress] = useState<number>(0);
+  const lastKnownProgressRef = useRef<number>(0);
+  const isMountedRef = useRef<boolean>(true);
   const { toast } = useToast();
 
-  const fetchProgressData = useCallback(async () => {
-    if (!taskId) return;
-    
+  const fetchProgressData = useCallback(async (showToast = false) => {
+    if (!taskId || !isMountedRef.current) return;
+
     try {
       // Fetch task data
       const { data: taskData, error: taskError } = await supabase
@@ -36,6 +37,7 @@ export function useTaskProgress(taskId: string) {
         .single();
 
       if (taskError) throw taskError;
+      if (!isMountedRef.current) return;
 
       // Fetch checklist data
       const { data: checklistData } = await supabase
@@ -43,11 +45,15 @@ export function useTaskProgress(taskId: string) {
         .select('is_done')
         .eq('task_id', taskId);
 
+      if (!isMountedRef.current) return;
+
       // Fetch subtasks data
       const { data: subtasksData } = await supabase
         .from('gp_task_subtasks')
         .select('is_done')
         .eq('task_id', taskId);
+
+      if (!isMountedRef.current) return;
 
       const checklistCount = checklistData?.length || 0;
       const checklistCompleted = checklistData?.filter(item => item.is_done).length || 0;
@@ -63,36 +69,50 @@ export function useTaskProgress(taskId: string) {
         status: taskData.status as 'pending' | 'in_progress' | 'review' | 'completed'
       };
 
-      // Check if progress changed automatically
-      if (lastKnownProgress > 0 && lastKnownProgress !== taskData.progress) {
+      // Check if progress changed automatically (only show toast if requested)
+      if (showToast && lastKnownProgressRef.current > 0 && lastKnownProgressRef.current !== taskData.progress) {
         const progressInfo = calculateProgressInfo(newProgressData);
-        if (!progressInfo.isManual) {
-          toast({
-            title: 'Progresso Atualizado',
-            description: `Progresso recalculado automaticamente: ${taskData.progress}% (${progressInfo.source})`,
-          });
+        if (!progressInfo.isManual && isMountedRef.current) {
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              toast({
+                title: 'Progresso Atualizado',
+                description: `Progresso recalculado automaticamente: ${taskData.progress}% (${progressInfo.source})`,
+              });
+            }
+          }, 100);
         }
       }
 
-      setProgressData(newProgressData);
-      setLastKnownProgress(taskData.progress);
+      if (isMountedRef.current) {
+        setProgressData(newProgressData);
+        lastKnownProgressRef.current = taskData.progress;
+      }
     } catch (error) {
       console.error('Erro ao buscar dados de progresso:', error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [taskId, lastKnownProgress, toast]);
+  }, [taskId, toast]);
 
   useEffect(() => {
-    fetchProgressData();
+    isMountedRef.current = true;
+    fetchProgressData(false);
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [fetchProgressData]);
 
   // Listen for real-time updates
   useEffect(() => {
     if (!taskId) return;
 
+    const channelName = `task-progress-${taskId}-${Date.now()}`;
     const tasksChannel = supabase
-      .channel('task-progress-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -102,7 +122,9 @@ export function useTaskProgress(taskId: string) {
           filter: `id=eq.${taskId}`
         },
         () => {
-          fetchProgressData();
+          if (isMountedRef.current) {
+            fetchProgressData(false);
+          }
         }
       )
       .on(
@@ -114,7 +136,9 @@ export function useTaskProgress(taskId: string) {
           filter: `task_id=eq.${taskId}`
         },
         () => {
-          fetchProgressData();
+          if (isMountedRef.current) {
+            fetchProgressData(false);
+          }
         }
       )
       .on(
@@ -126,7 +150,9 @@ export function useTaskProgress(taskId: string) {
           filter: `task_id=eq.${taskId}`
         },
         () => {
-          fetchProgressData();
+          if (isMountedRef.current) {
+            fetchProgressData(false);
+          }
         }
       )
       .subscribe();
@@ -134,7 +160,7 @@ export function useTaskProgress(taskId: string) {
     return () => {
       supabase.removeChannel(tasksChannel);
     };
-  }, [taskId, fetchProgressData]);
+  }, [taskId]);
 
   const calculateProgressInfo = (data: TaskProgressData): TaskProgressInfo => {
     let calculatedProgress = data.progress;
@@ -184,7 +210,7 @@ export function useTaskProgress(taskId: string) {
   };
 
   const updateManualProgress = async (newProgress: number): Promise<boolean> => {
-    if (!progressData || newProgress < 0 || newProgress > 100) {
+    if (!progressData || newProgress < 0 || newProgress > 100 || !isMountedRef.current) {
       return false;
     }
 
@@ -196,31 +222,35 @@ export function useTaskProgress(taskId: string) {
 
       if (error) throw error;
 
-      setProgressData(prev => prev ? { ...prev, progress: newProgress } : null);
-      setLastKnownProgress(newProgress);
+      if (isMountedRef.current) {
+        setProgressData(prev => prev ? { ...prev, progress: newProgress } : null);
+        lastKnownProgressRef.current = newProgress;
 
-      toast({
-        title: 'Progresso atualizado',
-        description: `Progresso definido manualmente para ${newProgress}%.`,
-      });
+        toast({
+          title: 'Progresso atualizado',
+          description: `Progresso definido manualmente para ${newProgress}%.`,
+        });
+      }
 
       return true;
     } catch (error) {
       console.error('Erro ao atualizar progresso:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o progresso.',
-        variant: 'destructive',
-      });
+      if (isMountedRef.current) {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível atualizar o progresso.',
+          variant: 'destructive',
+        });
+      }
       return false;
     }
   };
 
   const resetToAutoProgress = async (): Promise<boolean> => {
-    if (!progressData) return false;
+    if (!progressData || !isMountedRef.current) return false;
 
     const progressInfo = calculateProgressInfo(progressData);
-    
+
     try {
       const { error } = await supabase
         .from('gp_tasks')
@@ -229,22 +259,26 @@ export function useTaskProgress(taskId: string) {
 
       if (error) throw error;
 
-      setProgressData(prev => prev ? { ...prev, progress: progressInfo.calculatedProgress } : null);
-      setLastKnownProgress(progressInfo.calculatedProgress);
+      if (isMountedRef.current) {
+        setProgressData(prev => prev ? { ...prev, progress: progressInfo.calculatedProgress } : null);
+        lastKnownProgressRef.current = progressInfo.calculatedProgress;
 
-      toast({
-        title: 'Progresso resetado',
-        description: 'Progresso voltou ao cálculo automático.',
-      });
+        toast({
+          title: 'Progresso resetado',
+          description: 'Progresso voltou ao cálculo automático.',
+        });
+      }
 
       return true;
     } catch (error) {
       console.error('Erro ao resetar progresso:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível resetar o progresso.',
-        variant: 'destructive',
-      });
+      if (isMountedRef.current) {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível resetar o progresso.',
+          variant: 'destructive',
+        });
+      }
       return false;
     }
   };
@@ -257,6 +291,6 @@ export function useTaskProgress(taskId: string) {
     loading,
     updateManualProgress,
     resetToAutoProgress,
-    refresh: fetchProgressData
+    refresh: () => fetchProgressData(true)
   };
 }

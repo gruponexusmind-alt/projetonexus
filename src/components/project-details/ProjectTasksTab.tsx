@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, MoreVertical, User, Calendar, Flag, Edit, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -317,6 +317,7 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
   const [loading, setLoading] = useState(true);
   const [subtasksCounts, setSubtasksCounts] = useState<Record<string, {count: number, completed: number}>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   // Configurar sensores para drag & drop
@@ -334,6 +335,14 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
     }),
     useSensor(KeyboardSensor)
   );
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     fetchTasks();
@@ -548,10 +557,13 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
           .update({ status: newStatus, order_index: newOrderIndex })
           .eq('id', taskId);
 
-        toast({
-          title: 'Tarefa movida!',
-          description: `Status atualizado para "${COLUMNS.find(c => c.id === newStatus)?.title}"`,
-        });
+        // Delay no toast para evitar conflitos de renderização
+        toastTimeoutRef.current = setTimeout(() => {
+          toast({
+            title: 'Tarefa movida!',
+            description: `Status atualizado para "${COLUMNS.find(c => c.id === newStatus)?.title}"`,
+          });
+        }, 100);
 
         onRefresh();
       } catch (error) {
@@ -609,10 +621,13 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
 
           await Promise.all(updates);
 
-          toast({
-            title: 'Tarefa reordenada!',
-            description: 'A ordem foi atualizada com sucesso.',
-          });
+          // Delay no toast para evitar conflitos de renderização
+          toastTimeoutRef.current = setTimeout(() => {
+            toast({
+              title: 'Tarefa reordenada!',
+              description: 'A ordem foi atualizada com sucesso.',
+            });
+          }, 100);
         } catch (error) {
           console.error('Erro ao reordenar tarefas:', error);
           toast({
@@ -708,9 +723,9 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
                     strategy={verticalListSortingStrategy}
                   >
                     {columnTasks.length > 0 ? (
-                      columnTasks.map(task => (
+                      columnTasks.map((task) => (
                         <SortableTaskCard
-                          key={task.id}
+                          key={`task-${task.id}-${task.status}`}
                           task={task}
                           project={project}
                           onEdit={fetchTasks}

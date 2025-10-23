@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, User, Flag, Clock, Filter } from 'lucide-react';
+import { Calendar, User, Flag, Clock, Filter, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,6 +42,7 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
   const [stages, setStages] = useState<any[]>([]);
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectsOpen, setSelectsOpen] = useState({ stage: false, status: false });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -49,6 +50,13 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
     fetchTasks();
     fetchStages();
   }, [project.id]);
+
+  // Cleanup: Fechar Selects antes do unmount para evitar race condition com Radix Presence
+  useEffect(() => {
+    return () => {
+      setSelectsOpen({ stage: false, status: false });
+    };
+  }, []);
 
   const fetchTasks = async () => {
     try {
@@ -187,7 +195,12 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
 
       {/* Filters */}
       <div className="flex gap-4 mb-6">
-        <Select value={selectedStage} onValueChange={setSelectedStage}>
+        <Select
+          value={selectedStage}
+          onValueChange={setSelectedStage}
+          open={selectsOpen.stage}
+          onOpenChange={(open) => setSelectsOpen(prev => ({ ...prev, stage: open }))}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filtrar por etapa" />
           </SelectTrigger>
@@ -201,7 +214,12 @@ export function ProjectTimelineTab({ project }: ProjectTimelineTabProps) {
           </SelectContent>
         </Select>
 
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+        <Select
+          value={selectedStatus}
+          onValueChange={setSelectedStatus}
+          open={selectsOpen.status}
+          onOpenChange={(open) => setSelectsOpen(prev => ({ ...prev, status: open }))}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>

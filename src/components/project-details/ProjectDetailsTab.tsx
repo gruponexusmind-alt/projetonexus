@@ -65,6 +65,7 @@ interface ProjectDetailsTabProps {
 
 export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps) {
   const [editing, setEditing] = useState(false);
+  const [selectsOpen, setSelectsOpen] = useState({ status: false, priority: false, complexity: false });
   const [expectations, setExpectations] = useState<Expectation[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [newExpectation, setNewExpectation] = useState({ title: '', description: '' });
@@ -125,7 +126,9 @@ export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps
 
       if (error) throw error;
 
-      setEditing(false);
+      // Fechar todos os Selects antes de sair do modo editing
+      setSelectsOpen({ status: false, priority: false, complexity: false });
+      setTimeout(() => setEditing(false), 50);
       onRefresh();
 
       toast({
@@ -153,7 +156,9 @@ export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps
       start_date: project.start_date || '',
       deadline: project.deadline || ''
     });
-    setEditing(false);
+    // Fechar todos os Selects antes de cancelar edição
+    setSelectsOpen({ status: false, priority: false, complexity: false });
+    setTimeout(() => setEditing(false), 50);
   };
 
   const addExpectation = async () => {
@@ -349,6 +354,8 @@ export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps
                   <Select
                     value={formData.status}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                    open={selectsOpen.status}
+                    onOpenChange={(open) => setSelectsOpen(prev => ({ ...prev, status: open }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -373,6 +380,8 @@ export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps
                   <Select
                     value={formData.priority}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+                    open={selectsOpen.priority}
+                    onOpenChange={(open) => setSelectsOpen(prev => ({ ...prev, priority: open }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -411,6 +420,8 @@ export function ProjectDetailsTab({ project, onRefresh }: ProjectDetailsTabProps
                   <Select
                     value={formData.complexity.toString()}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, complexity: Number(value) }))}
+                    open={selectsOpen.complexity}
+                    onOpenChange={(open) => setSelectsOpen(prev => ({ ...prev, complexity: open }))}
                   >
                     <SelectTrigger>
                       <SelectValue />

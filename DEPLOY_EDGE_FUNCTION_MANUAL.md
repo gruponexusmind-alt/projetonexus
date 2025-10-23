@@ -1,3 +1,36 @@
+# 🚀 Guia: Deploy Manual da Edge Function validate-project-view
+
+## ⚠️ Por que precisa de deploy manual?
+
+O comando CLI `npx supabase functions deploy` está retornando erro 403 (sem permissão). Por isso, precisamos fazer deploy pelo Dashboard do Supabase.
+
+---
+
+## 📋 Passo a Passo
+
+### 1️⃣ Acessar o Dashboard do Supabase
+
+1. Abra: https://supabase.com/dashboard
+2. Faça login com sua conta
+3. Selecione o projeto **Nexus Gestão de Projetos**
+4. No menu lateral, clique em **Edge Functions**
+
+### 2️⃣ Localizar a Edge Function
+
+1. Na lista de Edge Functions, procure por: **`validate-project-view`**
+2. Se NÃO existir, clique em **"New Function"** e crie com o nome exato: `validate-project-view`
+3. Se já existir, clique no nome dela para abrir
+
+### 3️⃣ Copiar o Código Atualizado
+
+Abra o arquivo local:
+```
+supabase/functions/validate-project-view/index.ts
+```
+
+**OU** copie o código abaixo (já está com as correções):
+
+```typescript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -288,3 +321,98 @@ serve(async (req) => {
     );
   }
 });
+```
+
+### 4️⃣ Colar e Salvar
+
+1. No editor da Edge Function no Dashboard
+2. **DELETE TODO O CÓDIGO ANTIGO**
+3. Cole o código novo (copiado acima ou do arquivo local)
+4. Clique em **"Deploy"** (botão no canto superior direito)
+5. Aguarde a mensagem de sucesso ✅
+
+### 5️⃣ Verificar Variáveis de Ambiente
+
+1. No Dashboard, vá em **Settings** → **Edge Functions**
+2. Verifique se as seguintes variáveis estão configuradas:
+   - `SUPABASE_URL` (deve estar preenchida automaticamente)
+   - `SUPABASE_SERVICE_ROLE_KEY` (deve estar preenchida automaticamente)
+3. Se não estiverem, copie de **Settings** → **API**
+
+---
+
+## 🧪 Como Testar Após Deploy
+
+### 1. Verificar Logs
+
+1. No Dashboard, vá em **Edge Functions** → **validate-project-view**
+2. Clique na aba **"Logs"**
+3. Acesse um link público do projeto
+4. Veja os logs em tempo real:
+   - ✅ `Project found: GMAIA`
+   - ✅ `Meetings count: 3`
+   - ✅ `Expectations count: 4`
+   - ✅ `Access granted successfully`
+
+### 2. Testar na Interface
+
+1. Acesse o link público do projeto (formato: `/public-project/:token`)
+2. Digite seu email
+3. Verifique se as abas aparecem:
+   - ✅ **Reuniões** → deve mostrar 3 reuniões
+   - ✅ **Expectativas** → deve mostrar 4 expectativas
+   - ✅ **Riscos** → deve mostrar 2 riscos
+   - ✅ **Suas Tarefas** → deve mostrar 2 tarefas
+
+### 3. Verificar Progresso Corrigido
+
+- O progresso agora deve mostrar **68%** (correto)
+- Não mais **54%** (cálculo errado antigo)
+
+---
+
+## ❓ Problemas Comuns
+
+### Erro: "Token inválido"
+**Solução**: Gere um novo link público no sistema interno
+
+### Logs mostram: "Meetings count: 0"
+**Solução**: Execute a migration de dados de teste primeiro (veja próxima seção)
+
+### Erro: "SUPABASE_SERVICE_ROLE_KEY not set"
+**Solução**: Configure as variáveis de ambiente em Settings → Edge Functions
+
+---
+
+## 📦 Executar Migration de Dados de Teste
+
+Se os logs mostrarem 0 reuniões/expectativas:
+
+1. Vá em **SQL Editor** no Dashboard
+2. Abra o arquivo: `supabase/migrations/20251023000000_add_test_data_meetings_expectations.sql`
+3. Copie TODO o conteúdo
+4. Cole no SQL Editor
+5. Clique em **"Run"**
+6. Aguarde mensagem: `Dados de teste inseridos com sucesso!`
+7. Teste novamente o link público
+
+---
+
+## ✅ Checklist Final
+
+- [ ] Edge Function deployada via Dashboard
+- [ ] Variáveis de ambiente configuradas
+- [ ] Migration de dados executada
+- [ ] Logs mostram dados sendo buscados
+- [ ] Interface exibe reuniões e expectativas
+- [ ] Progresso mostra 68% (não 54%)
+
+---
+
+## 📞 Suporte
+
+Se ainda houver problemas:
+1. Verifique os logs da Edge Function no Dashboard
+2. Verifique o console do navegador (F12)
+3. Confirme que o projeto GMAIA existe no banco
+4. Execute o script `check_project_data.sql` para validar dados

@@ -29,27 +29,28 @@ export function PublicProjectLayout({ children, expiresAt }: PublicProjectLayout
   };
 
   return (
-    <div className="light min-h-screen bg-gradient-to-br from-white via-gray-50 to-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur-md shadow-sm">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600 shadow-md">
+              <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Nexus Gestão de Projetos</h1>
+              <h1 className="text-lg font-bold text-gray-900 tracking-tight">Nexus Gestão de Projetos</h1>
               <p className="text-xs text-gray-600">Visualização de Projeto</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="flex items-center gap-1">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Badge variant="outline" className="flex items-center gap-1 shadow-sm">
               <Eye className="h-3 w-3" />
-              Somente Leitura
+              <span className="hidden sm:inline">Somente Leitura</span>
+              <span className="sm:hidden">Leitura</span>
             </Badge>
             {expiresAt && (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1 shadow-sm">
                 <Clock className="h-3 w-3" />
                 {getExpirationText()}
               </Badge>
@@ -59,17 +60,30 @@ export function PublicProjectLayout({ children, expiresAt }: PublicProjectLayout
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 md:py-8">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-gray-50 py-6 mt-12">
-        <div className="container px-4 text-center text-sm text-gray-600">
-          <p>Este é um link temporário de visualização do projeto.</p>
-          <p className="mt-1">
-            O acesso expira automaticamente em 7 dias a partir da criação do link.
-          </p>
+      <footer className="border-t bg-gray-50 py-8 mt-12">
+        <div className="container px-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600">
+                <Building2 className="h-5 w-5 text-white" />
+              </div>
+              <p className="font-semibold text-gray-900">Nexus Gestão de Projetos</p>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">Este é um link temporário de visualização do projeto.</p>
+            <p className="text-xs text-gray-500">
+              O acesso expira automaticamente em 7 dias a partir da criação do link.
+            </p>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                © 2025 Nexus. Todos os direitos reservados.
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

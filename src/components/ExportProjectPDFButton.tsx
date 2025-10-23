@@ -110,10 +110,18 @@ export function ExportProjectPDFButton({
         };
       }
 
+      // Calculate project progress based on completed tasks
+      const totalTasks = taskStats?.total || 0;
+      const completedTasks = taskStats?.completed || 0;
+      const projectProgress = totalTasks > 0
+        ? Math.round((completedTasks / totalTasks) * 100)
+        : 0;
+
       // Prepare data for PDF
       const exportData: ProjectExportData = {
         project: {
           ...projectRes.data,
+          progress: projectProgress,
           client: projectRes.data.client || {
             name: 'Cliente não informado',
             email: 'Não informado',

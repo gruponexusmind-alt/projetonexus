@@ -14,7 +14,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
@@ -67,6 +66,7 @@ export function ProjectSprintsTab({ project, onRefresh }: ProjectSprintsTabProps
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
   const [sprintToDelete, setSprintToDelete] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newSprint, setNewSprint] = useState({
     name: '',
     goal: '',
@@ -518,31 +518,14 @@ export function ProjectSprintsTab({ project, onRefresh }: ProjectSprintsTabProps
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Sprint
                       </DropdownMenuItem>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Trash2 className="h-4 w-4 mr-2 text-red-600" />
-                            <span className="text-red-600">Excluir Sprint</span>
-                          </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir este sprint? Todas as tarefas serão movidas de volta para o backlog. Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteSprint(sprint.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <DropdownMenuItem onClick={() => {
+                        setSprintToDelete(sprint.id);
+                        // Delay para evitar race condition: DropdownMenu Portal fecha → AlertDialog Portal abre
+                        setTimeout(() => setShowDeleteDialog(true), 50);
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-2 text-red-600" />
+                        <span className="text-red-600">Excluir Sprint</span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -642,6 +625,33 @@ export function ProjectSprintsTab({ project, onRefresh }: ProjectSprintsTabProps
           </CardContent>
         </Card>
       )}
+
+      {/* AlertDialog para confirmação de exclusão - separado do DropdownMenu */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este sprint? Todas as tarefas serão movidas de volta para o backlog. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (sprintToDelete) {
+                  deleteSprint(sprintToDelete);
+                  setShowDeleteDialog(false);
+                  setSprintToDelete(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

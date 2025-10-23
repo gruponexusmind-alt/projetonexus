@@ -340,17 +340,17 @@ export function ProjectMeetingsTab({ project, onRefresh }: ProjectMeetingsTabPro
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (meetingToDelete) {
-                  deleteMeeting(meetingToDelete);
-                  setMeetingToDelete(null);
+                  await deleteMeeting(meetingToDelete);
+                  // Delay para evitar race condition: deleteMeeting rápido → setMeetingToDelete(null) → AlertDialog Portal fecha abruptamente
+                  setTimeout(() => setMeetingToDelete(null), 100);
                 }
               }}
               className="bg-red-600 hover:bg-red-700"
             >
               Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
+            </AlertDialogAction>          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

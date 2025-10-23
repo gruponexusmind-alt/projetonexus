@@ -20,6 +20,7 @@ import { ProjectSprintsTab } from '@/components/project-details/ProjectSprintsTa
 import { ProjectRisksTab } from '@/components/project-details/ProjectRisksTab';
 import { ProjectResourcesTab } from '@/components/project-details/ProjectResourcesTab';
 import { ProjectMeetingsTab } from '@/components/project-details/ProjectMeetingsTab';
+import { ProjectCommunicationTab } from '@/components/project-details/ProjectCommunicationTab';
 
 interface Project {
   id: string;
@@ -242,6 +243,12 @@ export default function ProjectDetails() {
               Reuniões
             </TabsTrigger>
             <TabsTrigger
+              value="communication"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 font-light data-[state=active]:font-medium"
+            >
+              Comunicação
+            </TabsTrigger>
+            <TabsTrigger
               value="documents"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 pb-3 font-light data-[state=active]:font-medium"
             >
@@ -307,6 +314,13 @@ export default function ProjectDetails() {
 
           <TabsContent value="meetings" className="space-y-6">
             <ProjectMeetingsTab
+              project={project}
+              onRefresh={fetchProjectData}
+            />
+          </TabsContent>
+
+          <TabsContent value="communication" className="space-y-6">
+            <ProjectCommunicationTab
               project={project}
               onRefresh={fetchProjectData}
             />

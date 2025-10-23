@@ -51,6 +51,7 @@ export function ProjectResourcesTab({ project, onRefresh }: ProjectResourcesTabP
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [userSelectOpen, setUserSelectOpen] = useState(false);
   const [newResource, setNewResource] = useState({
     name: '',
     email: '',
@@ -68,6 +69,13 @@ export function ProjectResourcesTab({ project, onRefresh }: ProjectResourcesTabP
     fetchResources();
     fetchAvailableUsers();
   }, [project.id]);
+
+  // Cleanup: Fechar Select antes do Dialog desmontar para evitar race condition
+  useEffect(() => {
+    if (!showAddModal) {
+      setUserSelectOpen(false);
+    }
+  }, [showAddModal]);
 
   const fetchResources = async () => {
     try {
@@ -332,7 +340,12 @@ export function ProjectResourcesTab({ project, onRefresh }: ProjectResourcesTabP
               {newResource.type === 'internal' && (
                 <div>
                   <Label htmlFor="user_id">Usuário do Sistema</Label>
-                  <Select value={newResource.user_id} onValueChange={handleUserSelection}>
+                  <Select
+                    value={newResource.user_id}
+                    onValueChange={handleUserSelection}
+                    open={userSelectOpen}
+                    onOpenChange={setUserSelectOpen}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um usuário" />
                     </SelectTrigger>

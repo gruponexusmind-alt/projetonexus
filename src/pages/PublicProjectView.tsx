@@ -488,7 +488,11 @@ export default function PublicProjectView() {
           </TabsContent>
 
           <TabsContent value="expectations" className="mt-6">
-            <PublicProjectExpectations expectations={expectations} />
+            <PublicProjectExpectations
+              expectations={expectations}
+              token={token!}
+              email={email}
+            />
           </TabsContent>
 
           <TabsContent value="meetings" className="mt-6">

@@ -237,7 +237,7 @@ serve(async (req) => {
       .from('gp_tasks')
       .select('id, title, description, status, priority, due_date')
       .eq('project_id', decoded.project_id)
-      .eq('requires_client_action', true)
+      .eq('client_execution', true)
       .order('due_date', { ascending: true });
 
     if (clientTasksError) {

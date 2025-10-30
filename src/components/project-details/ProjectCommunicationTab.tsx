@@ -96,11 +96,25 @@ export function ProjectCommunicationTab({ project, onRefresh }: ProjectCommunica
         throw new Error('Usuário não autenticado');
       }
 
+      // Buscar o profile.id do usuário logado (necessário para FK)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Perfil do usuário não encontrado');
+      }
+
       const { error } = await supabase
         .from('gp_comments')
         .insert({
+          company_id: project.company_id,
           project_id: project.id,
-          author_id: user.id,
+          entity_type: 'project',
+          entity_id: project.id,
+          author_id: profile.id, // Usar profile.id ao invés de user.id
           content: newContent.trim(),
           is_internal: !isVisibleToClient, // Inverte: checkbox "Visível" = is_internal false
         });

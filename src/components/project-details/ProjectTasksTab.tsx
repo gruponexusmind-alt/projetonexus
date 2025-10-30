@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, MoreVertical, User, Calendar, Flag, Edit, GripVertical } from 'lucide-react';
+import { Plus, MoreVertical, User, Calendar, Flag, Edit, GripVertical, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +91,7 @@ interface SortableTaskCardProps {
   onStatusChange: (taskId: string, newStatus: Task['status']) => void;
   onChecklistToggle: (taskId: string, itemId: string, isDone: boolean) => void;
   onRefresh: () => void;
+  onDeleteTask: (taskId: string) => void;
   getPriorityColor: (priority: Task['priority']) => string;
   getPriorityLabel: (priority: Task['priority']) => string;
   subtasksCount?: { count: number; completed: number };
@@ -103,6 +104,7 @@ function SortableTaskCard({
   onStatusChange,
   onChecklistToggle,
   onRefresh,
+  onDeleteTask,
   getPriorityColor,
   getPriorityLabel,
   subtasksCount,
@@ -176,6 +178,13 @@ function SortableTaskCard({
                   </DropdownMenuItem>
                 ))
               }
+              <DropdownMenuItem
+                onClick={() => onDeleteTask(task.id)}
+                className="text-destructive"
+              >
+                <Trash className="h-3 w-3 mr-2" />
+                Excluir Tarefa
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -486,6 +495,36 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('gp_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Tarefa excluída com sucesso.',
+      });
+
+      await fetchTasks();
+      onRefresh();
+    } catch (error) {
+      console.error('Erro ao excluir tarefa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a tarefa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getPriorityColor = (priority: Task['priority']) => {
     const colors = {
       low: 'bg-green-100 text-green-800',
@@ -732,6 +771,7 @@ export function ProjectTasksTab({ project, onRefresh }: ProjectTasksTabProps) {
                           onStatusChange={updateTaskStatus}
                           onChecklistToggle={toggleChecklistItem}
                           onRefresh={onRefresh}
+                          onDeleteTask={handleDeleteTask}
                           getPriorityColor={getPriorityColor}
                           getPriorityLabel={getPriorityLabel}
                           subtasksCount={subtasksCounts[task.id]}

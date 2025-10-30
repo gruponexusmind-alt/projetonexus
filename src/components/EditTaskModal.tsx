@@ -13,7 +13,7 @@ import { TaskLabelsSelector } from '@/components/TaskLabelsSelector';
 import { TaskDependenciesManager } from '@/components/TaskDependenciesManager';
 import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
 import { TaskTimer } from '@/components/TaskTimer';
-import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock } from 'lucide-react';
+import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,9 +130,42 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('gp_tasks')
+        .delete()
+        .eq('id', task.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Tarefa excluída com sucesso.',
+      });
+
+      setOpen(false);
+      onTaskUpdated();
+    } catch (error) {
+      console.error('Erro ao excluir tarefa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a tarefa.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       // Validar dados
       const validatedData = taskSchema.parse({
@@ -459,22 +492,33 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           </div>
 
           {/* Ações */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-between gap-2 pt-4">
             <Button
               type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
+              variant="destructive"
+              onClick={handleDelete}
               disabled={loading}
             >
-              Cancelar
+              <Trash className="h-4 w-4 mr-2" />
+              Excluir Tarefa
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </div>
           </div>
             </form>
           </TabsContent>

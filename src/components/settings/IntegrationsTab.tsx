@@ -66,6 +66,7 @@ const integrationConfigs: IntegrationConfig[] = [
     fields: [
       { key: 'provider', label: 'Provedor', type: 'select', required: true, options: [
         { label: 'SMTP Personalizado', value: 'smtp' },
+        { label: 'Resend', value: 'resend' },
         { label: 'SendGrid', value: 'sendgrid' },
         { label: 'Postmark', value: 'postmark' },
       ]},

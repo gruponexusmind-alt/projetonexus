@@ -74,17 +74,32 @@ serve(async (req) => {
     const now = new Date()
     const daysUntilExpiration = Math.ceil((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-    // Mapear status para português
+    // Mapear status para português com emojis
     const statusMap: Record<string, string> = {
-      'onboarding': 'Onboarding',
-      'strategy': 'Estratégia',
-      'development': 'Desenvolvimento',
-      'testing': 'Testes',
-      'delivery': 'Entrega',
-      'monitoring': 'Monitoramento'
+      'onboarding': '🎯 Onboarding',
+      'strategy': '📋 Estratégia',
+      'development': '⚙️ Desenvolvimento',
+      'testing': '🧪 Testes',
+      'delivery': '📦 Entrega',
+      'monitoring': '📊 Monitoramento'
     }
 
-    const statusText = statusMap[project.status] || project.status
+    // Cores por status
+    const statusColors: Record<string, string> = {
+      'onboarding': '#667eea',
+      'strategy': '#f59e0b',
+      'development': '#10b981',
+      'testing': '#f59e0b',
+      'delivery': '#8b5cf6',
+      'monitoring': '#06b6d4'
+    }
+
+    const projectStatus = project.status || 'onboarding'
+    const statusText = statusMap[projectStatus] || '🎯 Em Andamento'
+    const statusColor = statusColors[projectStatus] || '#667eea'
+
+    // Garantir progresso válido (0-100)
+    const progress = Math.max(0, Math.min(100, project.progress ?? 0))
 
     // Gerar e-mail HTML
     const emailHTML = `
@@ -140,16 +155,18 @@ serve(async (req) => {
             margin-bottom: 30px;
           }
           .project-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-left: 5px solid #667eea;
             border-radius: 12px;
             padding: 25px;
             margin: 30px 0;
-            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
           }
           .project-title {
             font-size: 20px;
-            font-weight: bold;
-            color: #333;
+            font-weight: 700;
+            color: #111827;
             margin-bottom: 15px;
           }
           .project-info {
@@ -162,35 +179,39 @@ serve(async (req) => {
           .info-label {
             display: table-cell;
             padding: 8px 0;
-            font-weight: 600;
-            color: #555;
+            font-weight: 700;
+            color: #374151;
             width: 120px;
           }
           .info-value {
             display: table-cell;
             padding: 8px 0;
-            color: #333;
+            color: #1f2937;
+            font-weight: 500;
           }
           .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            background-color: #667eea;
+            padding: 6px 16px;
+            border-radius: 20px;
             color: white;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
           }
           .progress-bar {
             width: 100%;
-            height: 8px;
-            background-color: rgba(0,0,0,0.1);
-            border-radius: 4px;
+            height: 10px;
+            background-color: #e5e7eb;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
             overflow: hidden;
           }
           .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
             border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+            transition: width 0.3s ease;
           }
           .instructions {
             background-color: #f8f9fa;
@@ -230,16 +251,18 @@ serve(async (req) => {
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
           }
           .warning-box {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
+            background-color: #fef3c7;
+            border: 2px solid #f59e0b;
             border-radius: 8px;
-            padding: 15px;
+            padding: 16px;
             margin: 20px 0;
           }
           .warning-box p {
             margin: 5px 0;
-            color: #856404;
+            color: #78350f;
             font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
           }
           .features {
             background-color: #e7f3ff;
@@ -281,8 +304,9 @@ serve(async (req) => {
             margin-bottom: 10px;
           }
           .footer-text {
-            color: #6c757d;
+            color: #495057;
             font-size: 14px;
+            font-weight: 500;
             margin: 5px 0;
           }
           .footer-link {
@@ -316,22 +340,20 @@ serve(async (req) => {
                 <div class="info-row">
                   <div class="info-label">Status:</div>
                   <div class="info-value">
-                    <span class="status-badge">${statusText}</span>
+                    <span class="status-badge" style="background-color: ${statusColor};">${statusText}</span>
                   </div>
                 </div>
-                ${project.progress !== null && project.progress !== undefined ? `
                 <div class="info-row">
                   <div class="info-label">Progresso:</div>
                   <div class="info-value">
                     <div style="display: flex; align-items: center; gap: 10px;">
                       <div class="progress-bar" style="flex: 1;">
-                        <div class="progress-fill" style="width: ${project.progress}%"></div>
+                        <div class="progress-fill" style="width: ${progress}%"></div>
                       </div>
-                      <span style="font-weight: 600;">${project.progress}%</span>
+                      <span style="font-weight: 700; color: #1f2937;">${progress}%</span>
                     </div>
                   </div>
                 </div>
-                ` : ''}
                 ${project.deadline ? `
                 <div class="info-row">
                   <div class="info-label">Prazo:</div>

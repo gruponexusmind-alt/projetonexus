@@ -55,6 +55,28 @@ serve(async (req) => {
       throw new Error('Projeto não encontrado')
     }
 
+    // Buscar etapa atual do projeto (mesma lógica do dashboard)
+    const { data: currentStage } = await supabase
+      .from('gp_project_stages')
+      .select('*')
+      .eq('project_id', inviteData.projectId)
+      .eq('is_current', true)
+      .single()
+
+    // Buscar estatísticas de tarefas (progresso real calculado)
+    const { data: taskStats } = await supabase
+      .from('v_project_task_stats')
+      .select('*')
+      .eq('project_id', inviteData.projectId)
+      .single()
+
+    // Buscar estatísticas de tempo (horas trabalhadas)
+    const { data: timeStats } = await supabase
+      .from('v_project_time_stats')
+      .select('*')
+      .eq('project_id', inviteData.projectId)
+      .single()
+
     // Buscar configuração SMTP
     const { data: emailConfig, error: configError } = await supabase
       .from('configuracoes_integracoes')
@@ -74,32 +96,38 @@ serve(async (req) => {
     const now = new Date()
     const daysUntilExpiration = Math.ceil((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-    // Mapear status para português com emojis
-    const statusMap: Record<string, string> = {
-      'onboarding': '🎯 Onboarding',
-      'strategy': '📋 Estratégia',
-      'development': '⚙️ Desenvolvimento',
-      'testing': '🧪 Testes',
-      'delivery': '📦 Entrega',
-      'monitoring': '📊 Monitoramento'
+    // Usar etapa atual ao invés de status fixo
+    const stageText = currentStage?.name || project.status || 'Em Andamento'
+    const stageColor = currentStage?.color || '#3b82f6' // Azul padrão
+
+    // Mapear prioridade para português
+    const priorityMap: Record<string, string> = {
+      'high': '🔴 Alta',
+      'medium': '🟡 Média',
+      'low': '🟢 Baixa'
     }
 
-    // Cores por status
-    const statusColors: Record<string, string> = {
-      'onboarding': '#667eea',
-      'strategy': '#f59e0b',
-      'development': '#10b981',
-      'testing': '#f59e0b',
-      'delivery': '#8b5cf6',
-      'monitoring': '#06b6d4'
+    // Cores por prioridade
+    const priorityColors: Record<string, string> = {
+      'high': '#ef4444',   // Vermelho
+      'medium': '#f59e0b', // Laranja
+      'low': '#10b981'     // Verde
     }
 
-    const projectStatus = project.status || 'onboarding'
-    const statusText = statusMap[projectStatus] || '🎯 Em Andamento'
-    const statusColor = statusColors[projectStatus] || '#667eea'
+    const priorityText = priorityMap[project.priority] || ''
+    const priorityColor = priorityColors[project.priority] || '#f59e0b'
 
-    // Garantir progresso válido (0-100)
-    const progress = Math.max(0, Math.min(100, project.progress ?? 0))
+    // Usar progresso real calculado pela view (mesma lógica do dashboard)
+    const progress = taskStats?.progress_score ?? 0
+
+    // Total de tarefas e horas trabalhadas
+    const totalTasks = taskStats?.total ?? 0
+    const horasTrabalhadas = timeStats?.hours_worked ?? 0
+
+    // Complexidade em estrelas
+    const complexityStars = project.complexity
+      ? '★'.repeat(project.complexity) + '☆'.repeat(5 - project.complexity)
+      : ''
 
     // Gerar e-mail HTML
     const emailHTML = `
@@ -334,13 +362,22 @@ serve(async (req) => {
 
             <!-- Project Card -->
             <div class="project-card">
-              <div class="project-title">📋 ${inviteData.projectTitle}</div>
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                <div class="project-title">📋 ${inviteData.projectTitle}</div>
+                ${priorityText ? `
+                  <span class="status-badge" style="background-color: ${priorityColor}; font-size: 13px;">
+                    ${priorityText}
+                  </span>
+                ` : ''}
+              </div>
 
               <div class="project-info">
                 <div class="info-row">
-                  <div class="info-label">Status:</div>
+                  <div class="info-label">Etapa Atual:</div>
                   <div class="info-value">
-                    <span class="status-badge" style="background-color: ${statusColor};">${statusText}</span>
+                    <span class="status-badge" style="background-color: ${stageColor};">
+                      📍 ${stageText}
+                    </span>
                   </div>
                 </div>
                 <div class="info-row">
@@ -350,20 +387,44 @@ serve(async (req) => {
                       <div class="progress-bar" style="flex: 1;">
                         <div class="progress-fill" style="width: ${progress}%"></div>
                       </div>
-                      <span style="font-weight: 700; color: #1f2937;">${progress}%</span>
+                      <span style="font-weight: 700; color: #1f2937; font-size: 16px;">${progress}%</span>
                     </div>
                   </div>
                 </div>
                 ${project.deadline ? `
                 <div class="info-row">
                   <div class="info-label">Prazo:</div>
-                  <div class="info-value">${new Date(project.deadline).toLocaleDateString('pt-BR')}</div>
+                  <div class="info-value" style="font-weight: 600;">${new Date(project.deadline).toLocaleDateString('pt-BR')}</div>
                 </div>
                 ` : ''}
                 ${project.gp_clients ? `
                 <div class="info-row">
                   <div class="info-label">Cliente:</div>
-                  <div class="info-value">${project.gp_clients.name}</div>
+                  <div class="info-value" style="font-weight: 600;">${project.gp_clients.name}</div>
+                </div>
+                ` : ''}
+                ${complexityStars ? `
+                <div class="info-row">
+                  <div class="info-label">Complexidade:</div>
+                  <div class="info-value" style="color: #f59e0b; font-size: 18px; letter-spacing: 2px;">
+                    ${complexityStars}
+                  </div>
+                </div>
+                ` : ''}
+                ${totalTasks > 0 ? `
+                <div class="info-row">
+                  <div class="info-label">Total de Tarefas:</div>
+                  <div class="info-value" style="font-weight: 700; color: #1f2937;">
+                    ${totalTasks}
+                  </div>
+                </div>
+                ` : ''}
+                ${horasTrabalhadas > 0 ? `
+                <div class="info-row">
+                  <div class="info-label">Horas Trabalhadas:</div>
+                  <div class="info-value" style="font-weight: 700; color: #6366f1;">
+                    ${horasTrabalhadas.toFixed(1)}h
+                  </div>
                 </div>
                 ` : ''}
               </div>
@@ -463,9 +524,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Erro ao enviar convite:', error)
 
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao enviar convite'
+
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Erro desconhecido ao enviar convite'
+      error: errorMessage
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400

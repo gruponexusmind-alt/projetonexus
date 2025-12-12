@@ -55,27 +55,88 @@ serve(async (req) => {
       throw new Error('Projeto não encontrado')
     }
 
+    console.log('=== BUSCANDO DADOS DO PROJETO ===')
+    console.log('Project ID:', inviteData.projectId)
+    console.log('Project Title:', inviteData.projectTitle)
+
     // Buscar etapa atual do projeto (mesma lógica do dashboard)
-    const { data: currentStage } = await supabase
+    let { data: currentStage, error: stageError } = await supabase
       .from('gp_project_stages')
       .select('*')
       .eq('project_id', inviteData.projectId)
       .eq('is_current', true)
       .single()
 
+    console.log('Current Stage (is_current=true):', JSON.stringify(currentStage, null, 2))
+    console.log('Stage Error:', stageError)
+
+    // Fallback: Se não encontrar stage com is_current, buscar a última stage ativa
+    if (!currentStage) {
+      console.log('⚠️ Nenhuma stage com is_current=true. Buscando fallback...')
+
+      const { data: allStages } = await supabase
+        .from('gp_project_stages')
+        .select('*')
+        .eq('project_id', inviteData.projectId)
+        .order('order_index', { ascending: true })
+
+      console.log('All Stages:', JSON.stringify(allStages, null, 2))
+
+      // Encontrar última stage concluída ou primeira ativa
+      currentStage = allStages?.find((s: any) => s.status === 'active' || s.status === 'current') ||
+                     allStages?.filter((s: any) => s.status === 'completed').pop() ||
+                     allStages?.[allStages.length - 1]
+
+      console.log('Fallback Stage Selected:', JSON.stringify(currentStage, null, 2))
+    }
+
     // Buscar estatísticas de tarefas (progresso real calculado)
-    const { data: taskStats } = await supabase
+    let { data: taskStats, error: taskStatsError } = await supabase
       .from('v_project_task_stats')
       .select('*')
       .eq('project_id', inviteData.projectId)
       .single()
 
+    console.log('Task Stats (from view):', JSON.stringify(taskStats, null, 2))
+    console.log('Task Stats Error:', taskStatsError)
+
+    // Fallback: Se view não retornar dados, calcular manualmente
+    if (!taskStats) {
+      console.log('⚠️ v_project_task_stats retornou null. Calculando manualmente...')
+
+      const { data: tasks } = await supabase
+        .from('gp_tasks')
+        .select('status, progress')
+        .eq('project_id', inviteData.projectId)
+        .eq('blocked', false)
+
+      const total = tasks?.length ?? 0
+      const avgProgress = total > 0
+        ? Math.round(tasks.reduce((sum: number, t: any) => sum + (t.progress ?? 0), 0) / total)
+        : 0
+
+      taskStats = {
+        project_id: inviteData.projectId,
+        total: total,
+        pending: tasks?.filter((t: any) => t.status === 'pending').length ?? 0,
+        in_progress: tasks?.filter((t: any) => t.status === 'in_progress').length ?? 0,
+        review: tasks?.filter((t: any) => t.status === 'review').length ?? 0,
+        completed: tasks?.filter((t: any) => t.status === 'completed').length ?? 0,
+        progress_score: avgProgress
+      }
+
+      console.log('Fallback Task Stats Calculated:', JSON.stringify(taskStats, null, 2))
+    }
+
     // Buscar estatísticas de tempo (horas trabalhadas)
-    const { data: timeStats } = await supabase
+    const { data: timeStats, error: timeStatsError } = await supabase
       .from('v_project_time_stats')
       .select('*')
       .eq('project_id', inviteData.projectId)
       .single()
+
+    console.log('Time Stats (from view):', JSON.stringify(timeStats, null, 2))
+    console.log('Time Stats Error:', timeStatsError)
 
     // Buscar configuração SMTP
     const { data: emailConfig, error: configError } = await supabase
@@ -128,6 +189,18 @@ serve(async (req) => {
     const complexityStars = project.complexity
       ? '★'.repeat(project.complexity) + '☆'.repeat(5 - project.complexity)
       : ''
+
+    console.log('=== DADOS FINAIS PARA O E-MAIL ===')
+    console.log('Stage Text:', stageText)
+    console.log('Stage Color:', stageColor)
+    console.log('Priority Text:', priorityText)
+    console.log('Priority Color:', priorityColor)
+    console.log('Progress:', progress)
+    console.log('Total Tasks:', totalTasks)
+    console.log('Horas Trabalhadas:', horasTrabalhadas)
+    console.log('Complexity Stars:', complexityStars)
+    console.log('Deadline:', project.deadline)
+    console.log('Client Name:', project.gp_clients?.name)
 
     // Gerar e-mail HTML
     const emailHTML = `

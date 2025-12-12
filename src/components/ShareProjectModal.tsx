@@ -119,13 +119,64 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
           });
       }
 
-      // 3. Se marcou para enviar email, poderia chamar uma Edge Function aqui
-      // Por enquanto, apenas mostramos o link
+      // 3. Se marcou para enviar email, chamar Edge Function
+      if (formData.sendEmail) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
 
-      toast({
-        title: 'Link Gerado!',
-        description: 'Link de visualização criado com sucesso.',
-      });
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-project-invite`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({
+                projectId,
+                projectTitle,
+                clientName: formData.clientName,
+                clientEmail: formData.clientEmail,
+                inviteLink: link,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            console.error('Erro ao enviar e-mail:', result.error);
+            // Não bloqueia o fluxo se o e-mail falhar
+            toast({
+              title: 'Link Gerado!',
+              description: 'Link criado, mas houve erro ao enviar o e-mail. Compartilhe manualmente o link.',
+              variant: 'destructive',
+            });
+            return;
+          }
+
+          console.log('E-mail de convite enviado com sucesso:', result.emailId);
+
+          toast({
+            title: '✅ Link Gerado e E-mail Enviado!',
+            description: `Convite enviado para ${formData.clientEmail}`,
+          });
+        } catch (emailError) {
+          console.error('Erro ao enviar e-mail de convite:', emailError);
+          // Não bloqueia o fluxo se o e-mail falhar
+          toast({
+            title: 'Link Gerado!',
+            description: 'Link criado, mas houve erro ao enviar o e-mail. Compartilhe manualmente o link.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({
+          title: 'Link Gerado!',
+          description: 'Link de visualização criado com sucesso.',
+        });
+      }
     } catch (error) {
       console.error('Error sharing project:', error);
       toast({
@@ -266,8 +317,8 @@ export function ShareProjectModal({ projectId, projectTitle, children }: SharePr
             </div>
 
             {formData.sendEmail && (
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-sm text-blue-900 dark:text-blue-400">
-                📧 Um e-mail será enviado para {formData.clientEmail}
+              <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3 text-sm text-green-900 dark:text-green-400">
+                ✅ E-mail de convite enviado para <strong>{formData.clientEmail}</strong>
               </div>
             )}
 

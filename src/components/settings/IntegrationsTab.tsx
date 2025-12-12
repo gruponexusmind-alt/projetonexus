@@ -15,7 +15,8 @@ import {
   Settings as SettingsIcon,
   CheckCircle2,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Send
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -111,6 +112,9 @@ export function IntegrationsTab() {
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationConfig | null>(null);
   const [configData, setConfigData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [testEmailDialogOpen, setTestEmailDialogOpen] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -223,6 +227,57 @@ export function IntegrationsTab() {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    if (!testEmail || !testEmail.includes('@')) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, informe um e-mail válido',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSendingTest(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ to: testEmail }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Erro ao enviar e-mail');
+      }
+
+      toast({
+        title: '✅ E-mail enviado!',
+        description: `E-mail de teste enviado para ${testEmail}`,
+      });
+
+      setTestEmailDialogOpen(false);
+      setTestEmail('');
+    } catch (error: any) {
+      console.error('Error sending test email:', error);
+      toast({
+        title: 'Erro ao enviar e-mail',
+        description: error.message || 'Verifique a configuração e tente novamente',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   const getIntegrationStatus = (configId: string) => {
     const integration = integrations.find(i => i.nome === configId);
     if (!integration) return 'not_configured';
@@ -313,18 +368,81 @@ export function IntegrationsTab() {
                       {getStatusLabel(status)}
                     </span>
                   </div>
-                  <Dialog open={configDialogOpen && selectedIntegration?.id === config.id} onOpenChange={setConfigDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleOpenConfig(config)}
-                        className="flex items-center gap-2"
-                      >
-                        <SettingsIcon className="h-4 w-4" />
-                        {integration ? 'Configurar' : 'Conectar'}
-                      </Button>
-                    </DialogTrigger>
+                  <div className="flex items-center gap-2">
+                    {/* Botão de teste para integração de email */}
+                    {config.id === 'email' && integration && status === 'active' && (
+                      <Dialog open={testEmailDialogOpen} onOpenChange={setTestEmailDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <Send className="h-4 w-4" />
+                            Testar E-mail
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Mail className="h-5 w-5 text-blue-500" />
+                              Enviar E-mail de Teste
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="test-email">E-mail de destino</Label>
+                              <Input
+                                id="test-email"
+                                type="email"
+                                placeholder="exemplo@email.com"
+                                value={testEmail}
+                                onChange={(e) => setTestEmail(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !sendingTest) {
+                                    handleSendTestEmail();
+                                  }
+                                }}
+                              />
+                              <p className="text-sm text-muted-foreground">
+                                Um e-mail de teste será enviado para este endereço
+                              </p>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setTestEmailDialogOpen(false);
+                                  setTestEmail('');
+                                }}
+                                disabled={sendingTest}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                onClick={handleSendTestEmail}
+                                disabled={sendingTest || !testEmail}
+                              >
+                                {sendingTest ? 'Enviando...' : 'Enviar Teste'}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+
+                    <Dialog open={configDialogOpen && selectedIntegration?.id === config.id} onOpenChange={setConfigDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenConfig(config)}
+                          className="flex items-center gap-2"
+                        >
+                          <SettingsIcon className="h-4 w-4" />
+                          {integration ? 'Configurar' : 'Conectar'}
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -380,6 +498,7 @@ export function IntegrationsTab() {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

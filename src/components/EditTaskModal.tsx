@@ -13,12 +13,15 @@ import { TaskLabelsSelector } from '@/components/TaskLabelsSelector';
 import { TaskDependenciesManager } from '@/components/TaskDependenciesManager';
 import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
 import { TaskTimer } from '@/components/TaskTimer';
-import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock, Trash } from 'lucide-react';
+import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock, Trash, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { useTaskAttachments } from '@/hooks/useTaskAttachments';
+import { TaskAttachmentUpload } from '@/components/TaskAttachmentUpload';
+import { TaskAttachmentViewer } from '@/components/TaskAttachmentViewer';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200, 'Título muito longo'),
@@ -77,6 +80,19 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
   const [profiles, setProfiles] = useState<Array<{id: string, nome: string}>>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
   const { toast } = useToast();
+
+  // Hook para gerenciar anexos
+  const {
+    attachments,
+    loading: loadingAttachments,
+    uploading: uploadingAttachments,
+    uploadFiles,
+    deleteAttachment,
+    downloadAttachment,
+  } = useTaskAttachments({
+    taskId: task.id,
+    companyId: task.company_id,
+  });
 
   useEffect(() => {
     if (open) {
@@ -262,7 +278,7 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
               Informações
@@ -270,6 +286,10 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
             <TabsTrigger value="checklist" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               Checklist
+            </TabsTrigger>
+            <TabsTrigger value="attachments" className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Anexos {attachments.length > 0 && `(${attachments.length})`}
             </TabsTrigger>
             <TabsTrigger value="timer" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
@@ -529,6 +549,27 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
               companyId={task.company_id}
               onUpdate={onTaskUpdated}
             />
+          </TabsContent>
+
+          <TabsContent value="attachments" className="space-y-4">
+            <div className="space-y-4">
+              <TaskAttachmentViewer
+                attachments={attachments}
+                loading={loadingAttachments}
+                onDelete={deleteAttachment}
+                onDownload={downloadAttachment}
+                showActions={true}
+              />
+
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">Adicionar novos anexos</h4>
+                <TaskAttachmentUpload
+                  onFilesSelected={uploadFiles}
+                  uploading={uploadingAttachments}
+                  disabled={false}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="timer" className="space-y-4">

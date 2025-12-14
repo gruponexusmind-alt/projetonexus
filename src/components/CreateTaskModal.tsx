@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Info, ListChecks, X, Plus } from 'lucide-react';
+import { CalendarIcon, Info, ListChecks, X, Plus, Paperclip } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,6 +38,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { TaskAttachmentUpload } from '@/components/TaskAttachmentUpload';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -77,6 +78,8 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
   const [stages, setStages] = useState<any[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -169,6 +172,47 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
         }
       }
 
+      // 3. Upload de anexos se houver
+      if (attachmentFiles.length > 0 && taskData) {
+        setUploadingAttachments(true);
+        const { data: userData } = await supabase.auth.getUser();
+
+        if (userData.user) {
+          for (const file of attachmentFiles) {
+            const uniqueFileName = `${Date.now()}_${file.name}`;
+            const filePath = `${companyId}/${taskData.id}/${uniqueFileName}`;
+
+            // Upload para o storage
+            const { error: uploadError } = await supabase.storage
+              .from('task-attachments')
+              .upload(filePath, file);
+
+            if (uploadError) {
+              console.error('Erro ao fazer upload do anexo:', uploadError);
+              continue;
+            }
+
+            // Criar registro no banco
+            const { error: attachmentError } = await supabase
+              .from('gp_task_attachments')
+              .insert({
+                task_id: taskData.id,
+                company_id: companyId,
+                file_name: file.name,
+                file_path: filePath,
+                file_size: file.size,
+                mime_type: file.type,
+                uploaded_by: userData.user.id,
+              });
+
+            if (attachmentError) {
+              console.error('Erro ao registrar anexo:', attachmentError);
+            }
+          }
+        }
+        setUploadingAttachments(false);
+      }
+
       toast({
         title: 'Tarefa criada!',
         description: 'A tarefa foi criada com sucesso.',
@@ -177,6 +221,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       form.reset();
       setChecklistItems([]);
       setNewChecklistItem('');
+      setAttachmentFiles([]);
       setOpen(false);
       onTaskCreated?.();
     } catch (error) {
@@ -188,6 +233,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
       });
     } finally {
       setLoading(false);
+      setUploadingAttachments(false);
     }
   };
 
@@ -214,6 +260,10 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
     ));
   };
 
+  const handleFilesSelected = async (files: File[]) => {
+    setAttachmentFiles((prev) => [...prev, ...files]);
+  };
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       setOpen(newOpen);
@@ -234,7 +284,7 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Info className="h-4 w-4" />
               Informações
@@ -242,6 +292,10 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
             <TabsTrigger value="checklist" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               Checklist {checklistItems.length > 0 && `(${checklistItems.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="attachments" className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Anexos {attachmentFiles.length > 0 && `(${attachmentFiles.length})`}
             </TabsTrigger>
           </TabsList>
 
@@ -570,6 +624,20 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
 
               <div className="pt-4 text-xs text-muted-foreground">
                 <p>💡 Dica: Os itens do checklist serão criados quando você salvar a tarefa</p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="attachments" className="space-y-4">
+            <div className="space-y-4">
+              <TaskAttachmentUpload
+                onFilesSelected={handleFilesSelected}
+                uploading={uploadingAttachments}
+                disabled={loading}
+              />
+
+              <div className="pt-4 text-xs text-muted-foreground">
+                <p>💡 Dica: As imagens serão enviadas quando você criar a tarefa</p>
               </div>
             </div>
           </TabsContent>

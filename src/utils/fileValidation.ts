@@ -50,20 +50,34 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * Gera um nome único para o arquivo
+ * Gera um nome único para o arquivo com sanitização completa
  */
 export function generateUniqueFileName(originalName: string): string {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
-  const ext = originalName.substring(originalName.lastIndexOf('.'));
-  const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'));
 
-  // Remove caracteres especiais do nome
+  // Extrair extensão de forma segura
+  const lastDotIndex = originalName.lastIndexOf('.');
+  const ext = lastDotIndex !== -1 ? originalName.substring(lastDotIndex) : '';
+  const nameWithoutExt = lastDotIndex !== -1
+    ? originalName.substring(0, lastDotIndex)
+    : originalName;
+
+  // Sanitizar nome: remove acentos, espaços e caracteres especiais
   const safeName = nameWithoutExt
-    .replace(/[^a-zA-Z0-9]/g, '_')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-zA-Z0-9]/g, '_')   // Substitui caracteres especiais por _
+    .replace(/_+/g, '_')              // Remove múltiplos underscores consecutivos
+    .replace(/^_|_$/g, '')            // Remove underscores no início e fim
     .substring(0, 50);
 
-  return `${safeName}_${timestamp}_${randomStr}${ext}`;
+  // Sanitizar extensão também
+  const safeExt = ext
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '');
+
+  return `${safeName || 'file'}_${timestamp}_${randomStr}${safeExt}`;
 }
 
 /**

@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { TaskAttachmentUpload } from '@/components/TaskAttachmentUpload';
+import { generateUniqueFileName } from '@/utils/fileValidation';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -179,13 +180,16 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
 
         if (userData.user) {
           for (const file of attachmentFiles) {
-            const uniqueFileName = `${Date.now()}_${file.name}`;
+            const uniqueFileName = generateUniqueFileName(file.name);
             const filePath = `${companyId}/${taskData.id}/${uniqueFileName}`;
 
             // Upload para o storage
             const { error: uploadError } = await supabase.storage
               .from('task-attachments')
-              .upload(filePath, file);
+              .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
 
             if (uploadError) {
               console.error('Erro ao fazer upload do anexo:', uploadError);

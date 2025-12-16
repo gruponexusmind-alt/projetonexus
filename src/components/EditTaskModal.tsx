@@ -13,7 +13,7 @@ import { TaskLabelsSelector } from '@/components/TaskLabelsSelector';
 import { TaskDependenciesManager } from '@/components/TaskDependenciesManager';
 import { TaskChecklistEditor } from '@/components/TaskChecklistEditor';
 import { TaskTimer } from '@/components/TaskTimer';
-import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock, Trash, Paperclip } from 'lucide-react';
+import { CalendarIcon, Edit, Save, Link2, Info, ListChecks, Clock, Trash, Paperclip, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,8 +26,8 @@ import { TaskAttachmentViewer } from '@/components/TaskAttachmentViewer';
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200, 'Título muito longo'),
   description: z.string().max(1000, 'Descrição muito longa').optional(),
-  status: z.enum(['pending', 'in_progress', 'review', 'completed']),
-  priority: z.enum(['low', 'medium', 'high']),
+  status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done', 'canceled', 'duplicate']),
+  priority: z.enum(['none', 'low', 'medium', 'high', 'urgent']),
   estimated_hours: z.number().min(0, 'Horas estimadas inválidas').max(999, 'Máximo 999 horas').optional(),
   due_date: z.date().optional(),
   stage_id: z.string().optional()
@@ -37,8 +37,8 @@ interface Task {
   id: string;
   title: string;
   description?: string;
-  status: 'pending' | 'in_progress' | 'review' | 'completed';
-  priority: 'low' | 'medium' | 'high';
+  status: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'canceled' | 'duplicate';
+  priority: 'none' | 'low' | 'medium' | 'high' | 'urgent';
   start_date?: string;
   due_date?: string;
   estimated_hours?: number;
@@ -59,10 +59,23 @@ interface EditTaskModalProps {
   task: Task;
   onTaskUpdated: () => void;
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalProps) {
-  const [open, setOpen] = useState(false);
+export function EditTaskModal({ task, onTaskUpdated, children, open: controlledOpen, onOpenChange }: EditTaskModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
   const [formData, setFormData] = useState({
@@ -267,14 +280,40 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
         {children}
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Tarefa
-          </DialogTitle>
-          <DialogDescription>
-            Atualize as informações da tarefa
-          </DialogDescription>
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Tarefa
+            </DialogTitle>
+            <DialogDescription>
+              Atualize as informações da tarefa
+            </DialogDescription>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={handleDelete}
+              disabled={loading}
+              title="Excluir tarefa"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+              title="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
@@ -332,10 +371,13 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="in_progress">Em Progresso</SelectItem>
-                  <SelectItem value="review">Em Revisão</SelectItem>
-                  <SelectItem value="completed">Concluída</SelectItem>
+                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="todo">Todo</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="review">In Review</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="canceled">Canceled</SelectItem>
+                  <SelectItem value="duplicate">Duplicate</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -348,9 +390,11 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Baixa</SelectItem>
-                  <SelectItem value="medium">Média</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="none">No priority</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -512,33 +556,14 @@ export function EditTaskModal({ task, onTaskUpdated, children }: EditTaskModalPr
           </div>
 
           {/* Ações */}
-          <div className="flex justify-between gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4">
             <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
+              type="submit"
               disabled={loading}
             >
-              <Trash className="h-4 w-4 mr-2" />
-              Excluir Tarefa
+              <Save className="h-4 w-4 mr-2" />
+              {loading ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Salvando...' : 'Salvar Alterações'}
-              </Button>
-            </div>
           </div>
             </form>
           </TabsContent>

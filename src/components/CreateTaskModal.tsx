@@ -44,8 +44,8 @@ import { generateUniqueFileName } from '@/utils/fileValidation';
 const formSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high']),
-  status: z.enum(['pending', 'in_progress', 'review', 'completed']),
+  priority: z.enum(['none', 'low', 'medium', 'high', 'urgent']),
+  status: z.enum(['backlog', 'todo', 'in_progress', 'review', 'done', 'canceled', 'duplicate']),
   start_date: z.date().optional(),
   due_date: z.date().optional(),
   estimated_hours: z.string().optional(),
@@ -88,8 +88,8 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
     defaultValues: {
       title: '',
       description: '',
-      priority: 'medium',
-      status: 'pending',
+      priority: 'none',
+      status: 'backlog',
       start_date: new Date(),
       estimated_hours: '',
       assigned_to: '',
@@ -352,9 +352,11 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="low">Baixa</SelectItem>
-                        <SelectItem value="medium">Média</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
+                        <SelectItem value="none">No priority</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -375,10 +377,13 @@ export function CreateTaskModal({ projectId, companyId, onTaskCreated, children 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="review">Em Revisão</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
+                        <SelectItem value="backlog">Backlog</SelectItem>
+                        <SelectItem value="todo">Todo</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="review">In Review</SelectItem>
+                        <SelectItem value="done">Done</SelectItem>
+                        <SelectItem value="canceled">Canceled</SelectItem>
+                        <SelectItem value="duplicate">Duplicate</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

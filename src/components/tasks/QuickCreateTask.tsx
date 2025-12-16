@@ -258,7 +258,7 @@ export function QuickCreateTask({
         <div className="space-y-4">
           {/* Title */}
           <Input
-            placeholder="Issue title"
+            placeholder="Task title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="text-lg font-medium border-0 px-0 focus-visible:ring-0 placeholder:text-muted-foreground/60"
@@ -510,7 +510,7 @@ export function QuickCreateTask({
 
             {/* Create Button */}
             <Button onClick={handleSubmit} disabled={loading || !title.trim()}>
-              {loading ? 'Creating...' : 'Create issue'}
+              {loading ? 'Creating...' : 'Create task'}
             </Button>
           </div>
         </div>
